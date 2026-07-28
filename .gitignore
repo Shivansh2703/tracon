@@ -1,0 +1,18 @@
+# python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# compiled core
+build/
+*.o
+*.out
+
+# exported agent traces stay out of git — even stripped, they describe
+# real sessions on this machine; publish aggregates, not traces
+traces/
+
+.DS_Store
