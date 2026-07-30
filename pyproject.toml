@@ -1,0 +1,65 @@
+[project]
+name = "tracon"
+version = "0.1.0"
+description = "Dependency- and session-aware scheduler for agentic LLM workloads"
+authors = [
+    { name = "Shivansh", email = "shivansh.sonit@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = []
+
+[project.scripts]
+tracon = "tracon:main"
+
+[build-system]
+requires = ["uv_build>=0.11.26,<0.12.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "pytest-cov>=7.1.0",
+    "ruff>=0.16.1",
+    "ty>=0.0.65",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "D",       # docstring style — docstrings only where they earn their place
+    "CPY",     # no copyright headers
+    "COM812",  # trailing-comma rule conflicts with formatter
+    "ISC001",  # implicit-str-concat rule conflicts with formatter
+    "ANN",     # type checking is ty's job, not lint's
+    "TRY003",  # long exception messages are fine
+    "EM101",   # string literals in exceptions are fine
+    "EM102",
+    "S324",    # blake2b used for tokenization, not password hashing
+    "TC001",   # runtime/type-checking import split is churn, not clarity
+    "TC002",
+    "TC003",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"src/tracon/cli.py" = ["T201"]  # a CLI prints
+"src/tracon/trace/exporter.py" = [
+    "C901",     # transcript line dispatch is inherently branchy
+    "PLR0913",  # _FileParser wires seven collaborators on purpose
+    "PLR0917",
+]
+"src/tracon/trace/privacy.py" = ["PLR0911"]  # _type_code is a type dispatch table
+"tests/*" = ["S101", "PLR2004", "SLF001", "INP001"]
+
+[tool.pytest.ini_options]
+addopts = ["--cov=tracon", "--cov-fail-under=80"]
+testpaths = ["tests"]
+
+[tool.ty.terminal]
+error-on-warning = true
+
+[tool.ty.environment]
+python-version = "3.12"

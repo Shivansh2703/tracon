@@ -26,8 +26,8 @@ tracon schedules the graph instead of the request:
 
 Early. Build order:
 
-1. Offline trace exporter (payload-stripped: timing and structure survive,
-   content doesn't)
+1. ~~Offline trace exporter~~ — done (payload-stripped: timing and structure
+   survive, content doesn't; `tracon export`)
 2. Workload characterization of the exported traces
 3. Simulator + FIFO/dynamic-batching baseline (Python)
 4. Scheduler policies (compiled core) + measured comparison
