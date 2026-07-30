@@ -29,6 +29,19 @@ never the implementer of the thesis code.
 - status-log continues as `tracon` (BLOCKED lines when waiting on his next commit are fine
   and expected).
 
+## Communication (owner amendment, 2026-07-30 late)
+
+Owner: "j keep me way more in the loop please" — and, asked whether the session should
+stop writing code entirely: "no do it yourself j more explaining ab what you did and
+the overall arch."
+
+- Division of labor above is **unchanged** — the session still writes its own lane
+  (Python prototypes, harness, acceptance tests) itself.
+- But every piece of session work ships with a teaching-grade explanation: what was
+  built, why, and where it sits in the overall architecture.
+- Design decisions get talked through in chat *before* they land when he's around;
+  narration is step-by-step while working, never just an end-of-task artifact dump.
+
 ## First deliverable on unblock
 
 Produce `docs/owner_todos.md` with the ladder through the C++ core MVP (seam interface,
