@@ -158,6 +158,7 @@ class _FileParser:
         self._notif_by_tooluse: dict[str, str] = {}
         self._spawn_background: dict[str, bool] = {}
         self._seen_uuids: set[str] = set()
+        self._seen_queue_ops: set[tuple[str, int]] = set()
         self._n_duplicates = 0
         self._n_orphan_results = 0
 
@@ -511,10 +512,18 @@ class _FileParser:
         if ts is None:
             self._anomalies.missing_timestamps["queue_op"] += 1
             return
+        # queue-operation lines carry no uuid, so the re-appended-history dedupe
+        # can't catch their copies; (op, timestamp) is identity enough within a file
+        op = line.get("operation") if isinstance(line.get("operation"), str) else None
+        key = (op or "?", ts)
+        if key in self._seen_queue_ops:
+            self._n_duplicates += 1
+            return
+        self._seen_queue_ops.add(key)
         event = self._base("queue_op", ts)
         event.update(
             {
-                "op": line.get("operation") if isinstance(line.get("operation"), str) else None,
+                "op": op,
                 "content_chars": content_chars(line.get("content")),
             }
         )

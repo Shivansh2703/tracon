@@ -8,6 +8,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+from tracon.trace.characterize import characterize
 from tracon.trace.exporter import Exporter
 
 EXIT_OK = 0
@@ -48,6 +49,23 @@ def _cmd_export(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+def _cmd_characterize(args: argparse.Namespace) -> int:
+    out = args.out if args.out is not None else args.traces
+    stats = characterize(args.traces, out)
+    tools = stats["tool_latency"]
+    print(
+        f"characterized {stats['corpus']['sessions']} sessions / "
+        f"{stats['corpus']['agents']} agents → {out}/stats.json, {out}/report.md"
+    )
+    print(
+        f"tool time: {tools['total_hours']}h "
+        f"({tools['tool_share_of_busy_time']:.0%} of busy time); "
+        f"p50 {tools['duration_ms']['p50'] / 1000:.2f}s "
+        f"p99 {tools['duration_ms']['p99'] / 1000:.1f}s"
+    )
+    return EXIT_OK
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="tracon",
@@ -77,6 +95,23 @@ def main(argv: list[str] | None = None) -> int:
         help="exit 0 even when unknown line shapes were seen (they are still reported)",
     )
     export.set_defaults(func=_cmd_export)
+
+    char = sub.add_parser(
+        "characterize",
+        help="compute workload statistics (stats.json + report.md) over an export",
+    )
+    char.add_argument(
+        "traces",
+        type=Path,
+        help="export directory containing events.jsonl (+ manifest.json)",
+    )
+    char.add_argument(
+        "--out",
+        type=Path,
+        default=None,
+        help="output directory (default: the traces directory itself)",
+    )
+    char.set_defaults(func=_cmd_characterize)
 
     args = parser.parse_args(argv)
     return args.func(args)

@@ -376,13 +376,24 @@ def test_duplicate_lines_deduped_by_uuid(tmp_path, monkeypatch):
         1000, "m1", {"type": "tool_use", "id": "tu_1", "name": "Read", "input": {}}
     )
     result = tool_result_line(2000, "tu_1", "fine")
-    jl(root / "-Users-test-d" / "s1.jsonl", [user_line(0, "hi"), use, result, use, result])
+    # queue-operation lines carry no uuid — deduped by (op, timestamp) instead
+    queue = {
+        "type": "queue-operation",
+        "operation": "enqueue",
+        "timestamp": iso(500),
+        "content": "q",
+    }
+    jl(
+        root / "-Users-test-d" / "s1.jsonl",
+        [user_line(0, "hi"), queue, use, result, use, result, queue],
+    )
 
     exporter = Exporter(root=root, out_dir=tmp_path / "out")
     manifest = exporter.run()
-    assert manifest["duplicate_lines"] == 2
+    assert manifest["duplicate_lines"] == 3
     assert manifest["events_by_type"]["tool_call"] == 1
     assert manifest["events_by_type"]["api_call"] == 1
+    assert manifest["events_by_type"]["queue_op"] == 1
     assert manifest["orphan_tool_results"] == 0
     assert not exporter.anomalies.any()
 

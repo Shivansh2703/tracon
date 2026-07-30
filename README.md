@@ -28,7 +28,10 @@ Early. Build order:
 
 1. ~~Offline trace exporter~~ — done (payload-stripped: timing and structure
    survive, content doesn't; `tracon export`)
-2. Workload characterization of the exported traces
+2. ~~Workload characterization~~ — done (`tracon characterize`;
+   [findings](docs/characterization.md): 79% of busy time is tool execution,
+   3.7% of calls hold 75% of tool time, 74% of prompts arrive while busy,
+   median model call reads 98.9% of input from cache)
 3. Simulator + FIFO/dynamic-batching baseline (Python)
 4. Scheduler policies (compiled core) + measured comparison
 
