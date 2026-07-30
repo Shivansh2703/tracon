@@ -8,6 +8,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+from tracon.sim.runner import SimConfig, simulate
 from tracon.trace.characterize import characterize
 from tracon.trace.exporter import Exporter
 
@@ -66,6 +67,44 @@ def _cmd_characterize(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+def _cmd_simulate(args: argparse.Namespace) -> int:
+    executors = None if args.executors == "inf" else int(args.executors)
+    config = SimConfig(
+        executors=executors,
+        max_batch=args.max_batch,
+        max_wait_ms=args.max_wait,
+        time_compress=args.compress,
+        policy=args.policy,
+    )
+    results = simulate(args.traces, config)
+    out = args.out
+    if out is None:
+        tag = "inf" if executors is None else str(executors)
+        out = args.traces / f"sim-{args.policy}-x{tag}-b{args.max_batch}-c{args.compress}.json"
+    out.write_text(json.dumps(results, indent=2) + "\n", encoding="utf-8")
+
+    latency = results["turn_latency_ms"]
+    print(
+        f"{results['turns_completed']} turns "
+        f"(+{results['agent_runs']} agent runs, {results['turns_incomplete']} incomplete) "
+        f"→ {out}"
+    )
+    print(
+        f"turn latency p50 {latency['p50'] / 1000:.1f}s p95 {latency['p95'] / 1000:.1f}s "
+        f"p99 {latency['p99'] / 1000:.1f}s; "
+        f"queue wait p95 {results['queue_wait_ms']['p95'] / 1000:.2f}s; "
+        f"utilization {results['utilization']}; "
+        f"mean batch {results['batches']['mean_size']}"
+    )
+    if results["fidelity"]:
+        err = results["fidelity"]["abs_rel_error"]
+        print(
+            f"fidelity vs traced ({results['fidelity']['turns_compared']} turns): "
+            f"median abs rel error {err['p50']:.1%}, p90 {err['p90']:.1%}"
+        )
+    return EXIT_OK
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="tracon",
@@ -112,6 +151,27 @@ def main(argv: list[str] | None = None) -> int:
         help="output directory (default: the traces directory itself)",
     )
     char.set_defaults(func=_cmd_characterize)
+
+    sim = sub.add_parser(
+        "simulate",
+        help="replay an export through the simulated backend (DES) and measure latency",
+    )
+    sim.add_argument("traces", type=Path, help="export directory containing events.jsonl")
+    sim.add_argument(
+        "--executors",
+        default="1",
+        help="parallel batch executors, or 'inf' for validation mode (default: 1)",
+    )
+    sim.add_argument("--max-batch", type=int, default=8, help="dynamic batch size (default: 8)")
+    sim.add_argument(
+        "--max-wait", type=float, default=10.0, help="batching wait in ms (default: 10)"
+    )
+    sim.add_argument(
+        "--compress", type=float, default=1.0, help="time-compression load factor (default: 1)"
+    )
+    sim.add_argument("--policy", default="fifo", help="scheduling policy (default: fifo)")
+    sim.add_argument("--out", type=Path, default=None, help="results JSON path")
+    sim.set_defaults(func=_cmd_simulate)
 
     args = parser.parse_args(argv)
     return args.func(args)

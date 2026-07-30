@@ -52,7 +52,7 @@ ignore = [
     "PLR0917",
 ]
 "src/tracon/trace/privacy.py" = ["PLR0911"]  # _type_code is a type dispatch table
-"tests/*" = ["S101", "PLR2004", "SLF001", "INP001"]
+"tests/*" = ["S101", "PLR2004", "SLF001", "INP001", "FBT", "PLR0913", "PLR0917"]
 
 [tool.pytest.ini_options]
 addopts = ["--cov=tracon", "--cov-fail-under=80"]

@@ -32,7 +32,9 @@ Early. Build order:
    [findings](docs/characterization.md): 79% of busy time is tool execution,
    3.7% of calls hold 75% of tool time, 74% of prompts arrive while busy,
    median model call reads 98.9% of input from cache)
-3. Simulator + FIFO/dynamic-batching baseline (Python)
+3. ~~Simulator + FIFO/dynamic-batching baseline~~ — done (`tracon simulate`;
+   [model + validation](docs/simulator.md): trace replay reproduces observed
+   turn latency with 0.0% median / 0.1% p90 error at infinite capacity)
 4. Scheduler policies (compiled core) + measured comparison
 
 ## Stack
