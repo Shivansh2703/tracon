@@ -1,4 +1,4 @@
-"""End-to-end parity through the Go gRPC service (docs/m4_plan.md, phase E).
+"""End-to-end parity through the Go gRPC service (docs/scheduler.md).
 
 The service compiles the same C++ kernels as the pybind11 seam, so a full
 simulation driven over the wire must equal the in-process one byte for byte.

@@ -1,4 +1,4 @@
-"""Seam tests for the C++ core's FIFO primitive (docs/m4_plan.md, phase A).
+"""Seam tests for the C++ core's FIFO primitive (docs/scheduler.md).
 
 Skips only if the ``tracon_core`` extension module is not installed."""
 
@@ -6,7 +6,7 @@ import random
 
 import pytest
 
-core = pytest.importorskip("tracon_core", reason="TODO-1 not built yet (docs/owner_todos.md)")
+core = pytest.importorskip("tracon_core", reason="tracon_core extension not installed")
 
 
 def test_version_is_nonempty_string():

@@ -1,4 +1,4 @@
-"""Parity gates for the compiled core (docs/m4_plan.md, phase A).
+"""Parity gates for the compiled core (docs/scheduler.md).
 
 Every policy exists twice — Python prototype and C++ port. These tests prove the
 two make identical decisions: at selection level on randomized queues, and through

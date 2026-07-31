@@ -1,4 +1,4 @@
-"""Context-affinity backend + policies (docs/m4_plan.md, phase D).
+"""Context-affinity backend + policies (docs/scheduler.md).
 
 Executors hold an LRU of resident stream contexts; cold placement costs
 ``cold_penalty_ms``. With the default penalty of 0 the backend must reproduce the

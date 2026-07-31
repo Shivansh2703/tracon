@@ -1,4 +1,4 @@
-"""Replication load harness (docs/m4_plan.md, phase C): R phase-offset copies of
+"""Replication load harness (docs/scheduler.md): R phase-offset copies of
 the workload as independent sessions — the load knob for the policy comparison."""
 
 import pytest
