@@ -24,8 +24,6 @@ tracon schedules the graph instead of the request:
 
 ## Status
 
-Early. Build order:
-
 1. ~~Offline trace exporter~~ — done (payload-stripped: timing and structure
    survive, content doesn't; `tracon export`)
 2. ~~Workload characterization~~ — done (`tracon characterize`;
@@ -35,9 +33,17 @@ Early. Build order:
 3. ~~Simulator + FIFO/dynamic-batching baseline~~ — done (`tracon simulate`;
    [model + validation](docs/simulator.md): trace replay reproduces observed
    turn latency with 0.0% median / 0.1% p90 error at infinite capacity)
-4. Scheduler policies (compiled core) + measured comparison
+4. ~~Scheduler policies (compiled core) + measured comparison~~ — done
+   (`tracon sweep`; [core, policies, results](docs/scheduler.md): at 16x
+   replicated load the dependency+context-aware `tracon` policy cuts p95 turn
+   latency vs FIFO with no oracle knowledge; oracle-SJF bounds the size-based
+   win at −58% p95; full parity + determinism gates)
 
 ## Stack
 
-Python for traces, simulation, and analysis; compiled core for the scheduler
-hot path.
+Python for traces, simulation, and analysis. The scheduling decision core is
+C++ (`core/`, one kernel header) compiled twice: a pybind11 module the
+simulator calls in-process, and a Go gRPC service (`go/`) via cgo — identical
+decisions on both transports, verified end-to-end. Measured per-decision cost:
+1–52µs in-process, 215–417µs over localhost gRPC by queue depth
+([method + caveats](docs/scheduler.md)).

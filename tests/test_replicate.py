@@ -1,6 +1,7 @@
 """Replication load harness (docs/m4_plan.md, phase C): R phase-offset copies of
 the workload as independent sessions — the load knob for the policy comparison."""
 
+import pytest
 from test_sim import chain_fixture
 
 from tracon.sim.runner import SimConfig, Simulation
@@ -27,6 +28,13 @@ def test_replicate_copies_streams_with_offsets(tmp_path):
     spawn_turn = tripled.turns_by_stream[("r1:s1", None)][0]
     spawned = [t.spawned_stream for s in spawn_turn.steps for t in s.tools if t.spawned_stream]
     assert spawned == [("r1:s1", "ag1")]
+
+
+def test_replicate_rejects_factors_below_one(tmp_path):
+    base = build_workload(chain_fixture(tmp_path) / "events.jsonl")
+    for factor in (0, -3):
+        with pytest.raises(ValueError, match="replicate factor"):
+            replicate_workload(base, factor)
 
 
 def test_replicate_is_deterministic_and_identity_at_one(tmp_path):

@@ -8,6 +8,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"math"
 	"net"
 
 	"google.golang.org/grpc"
@@ -27,8 +28,17 @@ func (s *server) Select(_ context.Context, req *schedpb.SelectRequest) (*schedpb
 	if !ok {
 		return nil, status.Errorf(codes.InvalidArgument, "unknown kernel: %q", req.Kernel)
 	}
+	// NaN sort keys violate stable_sort's strict weak ordering (UB in the C++
+	// kernels) — reject at the boundary. Infinities order consistently and pass.
+	if math.IsNaN(req.Now) || math.IsNaN(req.StarveMs) {
+		return nil, status.Error(codes.InvalidArgument, "now/starve_ms must not be NaN")
+	}
 	queue := make([]core.RequestView, len(req.Queue))
 	for i, r := range req.Queue {
+		if math.IsNaN(r.ReadyMs) || math.IsNaN(r.ServiceMs) {
+			return nil, status.Errorf(codes.InvalidArgument,
+				"queue[%d]: ready_ms/service_ms must not be NaN", i)
+		}
 		queue[i] = core.RequestView{
 			Req:       r.Req,
 			Stream:    r.Stream,

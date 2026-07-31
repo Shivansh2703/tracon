@@ -1,0 +1,234 @@
+[
+  {
+    "config": {
+      "executors": 2,
+      "max_batch": 8,
+      "max_wait_ms": 10.0,
+      "time_compress": 1.0,
+      "policy": "fifo",
+      "replicate": 32,
+      "cold_penalty_ms": 10000.0,
+      "resident_streams": 64
+    },
+    "turns_completed": 79680,
+    "turns_incomplete": 0,
+    "agents_incomplete": 0,
+    "turn_latency_ms": {
+      "n": 79680,
+      "mean": 252458357.11,
+      "p50": 84072907.76186323,
+      "p90": 758338751.3898935,
+      "p95": 1151433780.218752,
+      "p99": 1812497639.427249,
+      "max": 2359812902.3746295
+    },
+    "agent_runs": 52768,
+    "agent_latency_ms": {
+      "n": 52768,
+      "mean": 56734122.56,
+      "p50": 20765222.700166702,
+      "p90": 150545473.0,
+      "p95": 225194723.0,
+      "p99": 472579266.38989353,
+      "max": 1768073400.0
+    },
+    "queue_wait_ms": {
+      "n": 2875552,
+      "mean": 1409177.58,
+      "p50": 881239.0,
+      "p90": 3373545.0,
+      "p95": 3507990.0,
+      "p99": 3697776.0,
+      "max": 4214392.0
+    },
+    "batches": {
+      "dispatches": 618390,
+      "mean_size": 4.65
+    },
+    "utilization": 0.759,
+    "context": {
+      "warm_serves": 662360,
+      "cold_serves": 2213192
+    },
+    "makespan_hours": 1398.89,
+    "fidelity": null,
+    "workload_skipped": {
+      "tool_unlinked": 13,
+      "spawn_reclassified_background": 311
+    }
+  },
+  {
+    "config": {
+      "executors": 2,
+      "max_batch": 8,
+      "max_wait_ms": 10.0,
+      "time_compress": 1.0,
+      "policy": "core-sjf",
+      "replicate": 32,
+      "cold_penalty_ms": 10000.0,
+      "resident_streams": 64
+    },
+    "turns_completed": 79680,
+    "turns_incomplete": 0,
+    "agents_incomplete": 0,
+    "turn_latency_ms": {
+      "n": 79680,
+      "mean": 236080687.75,
+      "p50": 73564247.1935935,
+      "p90": 716734200.336339,
+      "p95": 1098679218.7250872,
+      "p99": 1728135479.7867837,
+      "max": 2286359122.39955
+    },
+    "agent_runs": 52768,
+    "agent_latency_ms": {
+      "n": 52768,
+      "mean": 53455157.22,
+      "p50": 18479288.0,
+      "p90": 143585183.414814,
+      "p95": 216179942.23564148,
+      "p99": 450058593.4521694,
+      "max": 1751716334.0
+    },
+    "queue_wait_ms": {
+      "n": 2875552,
+      "mean": 1325698.33,
+      "p50": 795998.0,
+      "p90": 3255228.0,
+      "p95": 3372589.0,
+      "p99": 3565891.0,
+      "max": 4008703.0
+    },
+    "batches": {
+      "dispatches": 664045,
+      "mean_size": 4.33
+    },
+    "utilization": 0.749,
+    "context": {
+      "warm_serves": 767905,
+      "cold_serves": 2107647
+    },
+    "makespan_hours": 1398.89,
+    "fidelity": null,
+    "workload_skipped": {
+      "tool_unlinked": 13,
+      "spawn_reclassified_background": 311
+    }
+  },
+  {
+    "config": {
+      "executors": 2,
+      "max_batch": 8,
+      "max_wait_ms": 10.0,
+      "time_compress": 1.0,
+      "policy": "core-affinity",
+      "replicate": 32,
+      "cold_penalty_ms": 10000.0,
+      "resident_streams": 64
+    },
+    "turns_completed": 79680,
+    "turns_incomplete": 0,
+    "agents_incomplete": 0,
+    "turn_latency_ms": {
+      "n": 79680,
+      "mean": 233527072.32,
+      "p50": 71977468.55248404,
+      "p90": 708925464.1056318,
+      "p95": 1087623266.552484,
+      "p99": 1713951004.3221006,
+      "max": 2269313461.1652503
+    },
+    "agent_runs": 52768,
+    "agent_latency_ms": {
+      "n": 52768,
+      "mean": 52959344.2,
+      "p50": 18061076.91541481,
+      "p90": 142583192.55248404,
+      "p95": 214680492.2604432,
+      "p99": 447036413.21786976,
+      "max": 1748583577.0
+    },
+    "queue_wait_ms": {
+      "n": 2875552,
+      "mean": 1312741.29,
+      "p50": 777264.0,
+      "p90": 3235733.0,
+      "p95": 3355636.0,
+      "p99": 3552753.0,
+      "max": 4046087.0
+    },
+    "batches": {
+      "dispatches": 663929,
+      "mean_size": 4.33
+    },
+    "utilization": 0.749,
+    "context": {
+      "warm_serves": 788671,
+      "cold_serves": 2086881
+    },
+    "makespan_hours": 1398.89,
+    "fidelity": null,
+    "workload_skipped": {
+      "tool_unlinked": 13,
+      "spawn_reclassified_background": 311
+    }
+  },
+  {
+    "config": {
+      "executors": 2,
+      "max_batch": 8,
+      "max_wait_ms": 10.0,
+      "time_compress": 1.0,
+      "policy": "core-tracon",
+      "replicate": 32,
+      "cold_penalty_ms": 10000.0,
+      "resident_streams": 64
+    },
+    "turns_completed": 79680,
+    "turns_incomplete": 0,
+    "agents_incomplete": 0,
+    "turn_latency_ms": {
+      "n": 79680,
+      "mean": 237031807.33,
+      "p50": 74249260.11054802,
+      "p90": 719071150.4811234,
+      "p95": 1101814496.0093727,
+      "p99": 1734424433.4811234,
+      "max": 2293486018.1652503
+    },
+    "agent_runs": 52768,
+    "agent_latency_ms": {
+      "n": 52768,
+      "mean": 53683258.71,
+      "p50": 18666655.0,
+      "p90": 143968843.0,
+      "p95": 216322306.92886925,
+      "p99": 450515197.21786976,
+      "max": 1750856896.0
+    },
+    "queue_wait_ms": {
+      "n": 2875552,
+      "mean": 1331112.95,
+      "p50": 803197.0,
+      "p90": 3255728.0,
+      "p95": 3372327.0,
+      "p99": 3577809.0,
+      "max": 4001374.0
+    },
+    "batches": {
+      "dispatches": 649916,
+      "mean_size": 4.42
+    },
+    "utilization": 0.751,
+    "context": {
+      "warm_serves": 759309,
+      "cold_serves": 2116243
+    },
+    "makespan_hours": 1398.89,
+    "fidelity": null,
+    "workload_skipped": {
+      "tool_unlinked": 13,
+      "spawn_reclassified_background": 311
+    }
+  }
+]

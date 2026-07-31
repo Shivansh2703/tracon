@@ -310,7 +310,9 @@ def replicate_workload(workload: Workload, factor: int) -> Workload:
     uniformly over the trace span (seeded — reruns are byte-identical). Replica 0
     is the original; time compression stays a separate, documented knob.
     """
-    if factor <= 1:
+    if factor < 1:
+        raise ValueError(f"replicate factor must be >= 1, got {factor}")
+    if factor == 1:
         return workload
     span = max((t.arrival_ms for t in workload.clock_turns), default=0.0)
     rng = random.Random(REPLICATE_SEED)  # noqa: S311 — deterministic methodology, not crypto

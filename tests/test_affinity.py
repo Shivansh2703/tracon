@@ -80,6 +80,40 @@ def test_batch_lands_on_warm_executor():
     assert server.stats.warm_serves == 1
 
 
+def test_batch_split_across_residency_pays_one_cold():
+    """A batch executes on ONE executor: [A, B] with A warm on executor 0 and B
+    warm on executor 1 lands where overlap ties break (executor 0) and B serves
+    cold. Pinned deliberately — warmth at selection time is optimistic for
+    mixed-stream batches (codex #2; documented limitation in scheduler.md)."""
+    engine = Engine()
+    server = ModelServer(
+        engine,
+        FIFOPolicy(),
+        executors=2,
+        max_batch=2,
+        max_wait_ms=5.0,  # nonzero so back-to-back submits coalesce into one batch
+        cold_penalty_ms=5_000.0,
+        resident_streams=4,
+    )
+    finished = {}
+
+    def done(rid):
+        return lambda: finished.setdefault(rid, engine.now)
+
+    # warm A onto executor 0; B onto executor 1 (submitted while 0 is busy)
+    engine.at(0, lambda: server.submit(_req("a1", "A", 100, done("a1"))))
+    engine.at(10, lambda: server.submit(_req("b1", "B", 100, done("b1"))))
+    # both free and warm; submit A+B back-to-back so they batch together
+    engine.at(20_000, lambda: server.submit(_req("a2", "A", 100, done("a2"))))
+    engine.at(20_000, lambda: server.submit(_req("b2", "B", 100, done("b2"))))
+    engine.run()
+    assert server.stats.batch_sizes[-1] == 2
+    # the joint batch pays exactly one cold serve (b2, off its home executor)
+    assert server.stats.warm_serves == 1
+    assert server.stats.cold_serves == 3
+    assert finished["a2"] == finished["b2"] == 25_100  # max member: 100 + cold 5s
+
+
 def test_warm_free_streams_only_reports_free_executors():
     engine = Engine()
     server = _server(engine)

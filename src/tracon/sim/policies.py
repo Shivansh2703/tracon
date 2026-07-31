@@ -24,6 +24,7 @@ if TYPE_CHECKING:
 
 GRPC_ADDR_ENV = "TRACON_GRPC_ADDR"
 GRPC_ADDR_DEFAULT = "127.0.0.1:50351"
+GRPC_TIMEOUT_S = 5.0  # a stalled service must surface as an error, not a hang
 
 # SJF guard: a request waiting this long jumps the line. A backstop, not the rule —
 # set above the baseline's p95 queue wait (11.9s at native load, 1 executor) so it
@@ -220,7 +221,7 @@ class GrpcPolicy:
         request = scheduler_pb2.SelectRequest(
             kernel=self._kernel, queue=views, k=k, now=now, starve_ms=self._starve_ms
         )
-        return [queue[i] for i in self._stub.Select(request).indices]
+        return [queue[i] for i in self._stub.Select(request, timeout=GRPC_TIMEOUT_S).indices]
 
 
 _PROTOTYPES = {
