@@ -1,10 +1,6 @@
-"""Acceptance tests for the owner-built C++ core (docs/owner_todos.md, TODO-1).
+"""Seam tests for the C++ core's FIFO primitive (docs/m4_plan.md, phase A).
 
-The whole file skips until the ``tracon_core`` extension module exists; making it
-pass IS TODO-1's definition of done. Run with:
-
-    uv run pytest tests/test_core_seam.py -v --no-cov
-"""
+Skips only if the ``tracon_core`` extension module is not installed."""
 
 import random
 

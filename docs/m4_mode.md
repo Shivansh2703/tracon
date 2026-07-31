@@ -1,5 +1,11 @@
 # M4 mode change — OWNER BUILDS (Shivansh, 2026-07-30 evening)
 
+> **SUPERSEDED (2026-07-30, later the same night).** Owner: "work yourself. new
+> directive. im not coding you are." — then "Goal set: finish m4". The session builds
+> everything again (C++ core, Go gRPC, policies, harness); the owner reviews. The
+> communication amendment below **still applies**: heavy step-by-step narration,
+> what + why + overall architecture, for everything built. Build plan: [m4_plan.md](m4_plan.md).
+
 Owner verbatim: "i want to be very very involved w building this. esp the c++ and go grpc.
 instead of j driving it i want you to tell me todos and i will do my best to implement them."
 
