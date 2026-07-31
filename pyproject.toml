@@ -6,7 +6,10 @@ authors = [
     { name = "Shivansh", email = "shivansh.sonit@gmail.com" }
 ]
 requires-python = ">=3.12"
-dependencies = ["tracon-core"]
+dependencies = [
+    "grpcio>=1.83.0",
+    "tracon-core",
+]
 
 [project.scripts]
 tracon = "tracon:main"
@@ -23,6 +26,7 @@ tracon-core = { workspace = true }
 
 [dependency-groups]
 dev = [
+    "grpcio-tools>=1.83.0",
     "pytest>=9.1.1",
     "pytest-cov>=7.1.0",
     "ruff>=0.16.1",
@@ -32,6 +36,7 @@ dev = [
 [tool.ruff]
 line-length = 100
 target-version = "py312"
+extend-exclude = ["src/tracon/schedpb"]  # protoc-generated
 
 [tool.ruff.lint]
 select = ["ALL"]
@@ -64,13 +69,20 @@ ignore = [
     "PLR0917",
 ]
 "tests/*" = ["S101", "PLR2004", "SLF001", "INP001", "FBT", "PLR0913", "PLR0917"]
+"scripts/*" = ["T201", "INP001"]  # benches print their tables
 
 [tool.pytest.ini_options]
 addopts = ["--cov=tracon", "--cov-fail-under=80"]
 testpaths = ["tests"]
 
+[tool.coverage.run]
+omit = ["*/schedpb/*"]  # protoc-generated
+
 [tool.ty.terminal]
 error-on-warning = true
+
+[tool.ty.src]
+exclude = ["src/tracon/schedpb"]  # protoc-generated
 
 [tool.ty.environment]
 python-version = "3.12"

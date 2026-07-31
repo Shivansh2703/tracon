@@ -10,13 +10,20 @@ inputs give identical selections everywhere.
 
 from __future__ import annotations
 
+import os
 from typing import TYPE_CHECKING, Protocol
 
+import grpc
 import tracon_core
+
+from tracon.schedpb import scheduler_pb2, scheduler_pb2_grpc
 
 if TYPE_CHECKING:
     from tracon.sim.server import ModelServer, Request
     from tracon.sim.workload import StreamKey
+
+GRPC_ADDR_ENV = "TRACON_GRPC_ADDR"
+GRPC_ADDR_DEFAULT = "127.0.0.1:50351"
 
 # SJF guard: a request waiting this long jumps the line. A backstop, not the rule —
 # set above the baseline's p95 queue wait (11.9s at native load, 1 executor) so it
@@ -179,17 +186,58 @@ class CorePolicy:
         return [queue[i] for i in picked]
 
 
+class GrpcPolicy:
+    """The core seam over the wire: identical views, selection by the Go service
+    (``go/cmd/traconsvc``), which compiles the very same C++ kernels. Address
+    comes from ``$TRACON_GRPC_ADDR`` (default 127.0.0.1:50351); the service must
+    already be running."""
+
+    def __init__(self, kernel: str, starve_ms: float = STARVE_MS) -> None:
+        self.name = f"grpc-{kernel}"
+        self._kernel = kernel
+        self._starve_ms = starve_ms
+        self._streams: dict[StreamKey, int] = {}
+        self._server: ModelServer | None = None
+        address = os.environ.get(GRPC_ADDR_ENV, GRPC_ADDR_DEFAULT)
+        self._stub = scheduler_pb2_grpc.SchedulerStub(grpc.insecure_channel(address))
+
+    def bind_server(self, server: ModelServer) -> None:
+        self._server = server
+
+    def select(self, queue: list[Request], k: int, now: float) -> list[Request]:
+        warm = self._server.warm_free_streams() if self._server is not None else set()
+        views = [
+            scheduler_pb2.RequestView(
+                req=i,
+                stream=self._streams.setdefault(r.stream, len(self._streams)),
+                ready_ms=r.ready_ms,
+                service_ms=r.service_ms,
+                waiters=r.waiters(),
+                warm=1 if r.stream in warm else 0,
+            )
+            for i, r in enumerate(queue)
+        ]
+        request = scheduler_pb2.SelectRequest(
+            kernel=self._kernel, queue=views, k=k, now=now, starve_ms=self._starve_ms
+        )
+        return [queue[i] for i in self._stub.Select(request).indices]
+
+
+_PROTOTYPES = {
+    "fifo": FIFOPolicy,
+    "sjf": SJFPolicy,
+    "unblock": UnblockPolicy,
+    "affinity": AffinityPolicy,
+    "tracon": TraconPolicy,
+}
+
+
 def make_policy(name: str) -> Policy:
-    if name == "fifo":
-        return FIFOPolicy()
-    if name == "sjf":
-        return SJFPolicy()
-    if name == "unblock":
-        return UnblockPolicy()
-    if name == "affinity":
-        return AffinityPolicy()
-    if name == "tracon":
-        return TraconPolicy()
+    prototype = _PROTOTYPES.get(name)
+    if prototype is not None:
+        return prototype()
     if name.startswith("core-"):
         return CorePolicy(name.removeprefix("core-"))
+    if name.startswith("grpc-"):
+        return GrpcPolicy(name.removeprefix("grpc-"))
     raise ValueError(f"unknown policy: {name}")
