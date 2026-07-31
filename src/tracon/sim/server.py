@@ -87,7 +87,7 @@ class ModelServer:
                     self._timer_at = deadline
                     self._engine.at(deadline, self._on_timer)
                 return
-            batch = self._policy.select(self._queue, self._max_batch)
+            batch = self._policy.select(self._queue, self._max_batch, now)
             for request in batch:
                 self._queue.remove(request)
                 request.start_ms = now

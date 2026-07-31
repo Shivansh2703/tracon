@@ -2,6 +2,12 @@ version = 1
 revision = 3
 requires-python = ">=3.12"
 
+[manifest]
+members = [
+    "tracon",
+    "tracon-core",
+]
+
 [[package]]
 name = "colorama"
 version = "0.4.6"
@@ -175,6 +181,9 @@ wheels = [
 name = "tracon"
 version = "0.1.0"
 source = { editable = "." }
+dependencies = [
+    { name = "tracon-core" },
+]
 
 [package.dev-dependencies]
 dev = [
@@ -185,6 +194,7 @@ dev = [
 ]
 
 [package.metadata]
+requires-dist = [{ name = "tracon-core", editable = "core" }]
 
 [package.metadata.requires-dev]
 dev = [
@@ -193,6 +203,11 @@ dev = [
     { name = "ruff", specifier = ">=0.16.1" },
     { name = "ty", specifier = ">=0.0.65" },
 ]
+
+[[package]]
+name = "tracon-core"
+version = "0.1.0"
+source = { editable = "core" }
 
 [[package]]
 name = "ty"

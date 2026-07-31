@@ -1,0 +1,12 @@
+[project]
+name = "tracon-core"
+version = "0.1.0"
+description = "Compiled scheduling decision core for tracon (C++ via pybind11)"
+requires-python = ">=3.12"
+
+[build-system]
+requires = ["scikit-build-core>=0.11", "pybind11>=2.12"]
+build-backend = "scikit_build_core.build"
+
+[tool.scikit-build]
+cmake.version = ">=3.26"

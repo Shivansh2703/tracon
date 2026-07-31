@@ -1,0 +1,105 @@
+"""Parity gates for the compiled core (docs/m4_plan.md, phase A).
+
+Every policy exists twice — Python prototype and C++ port. These tests prove the
+two make identical decisions: at selection level on randomized queues, and through
+full simulations where results must match byte-for-byte modulo the policy name.
+"""
+
+import random
+
+from test_sim import _api, _prompt, _session, _write_events
+
+from tracon.sim.policies import FIFOPolicy, SJFPolicy, make_policy
+from tracon.sim.runner import SimConfig, Simulation
+from tracon.sim.server import Request
+from tracon.sim.workload import build_workload
+
+
+def _queue(rng, n):
+    """A ready-ordered queue (non-decreasing ready_ms, frequent ties)."""
+    ready = 0.0
+    queue = []
+    for i in range(n):
+        ready += rng.choice([0.0, 0.0, 1.0, 250.0])  # ties are the dangerous case
+        queue.append(
+            Request(
+                req_id=f"r{i}",
+                stream=(f"s{rng.randrange(4)}", None),
+                service_ms=rng.choice([1.0, 40.0, 40.0, 9_000.0]),
+                on_complete=lambda: None,
+                ready_ms=ready,
+            )
+        )
+    return queue
+
+
+def _ids(batch):
+    return [r.req_id for r in batch]
+
+
+def test_selection_parity_on_randomized_queues():
+    rng = random.Random(2718)  # noqa: S311 — reproducible test data, not crypto
+    fifo, sjf = FIFOPolicy(), SJFPolicy()
+    core_fifo, core_sjf = make_policy("core-fifo"), make_policy("core-sjf")
+    for _ in range(300):
+        queue = _queue(rng, rng.randrange(30))
+        k = rng.randrange(9)
+        # now at/after the newest request; large offsets push requests past the guard
+        now = (queue[-1].ready_ms if queue else 0.0) + rng.choice([0.0, 500.0, 20_000.0])
+        assert _ids(core_fifo.select(queue, k, now)) == _ids(fifo.select(queue, k, now))
+        assert _ids(core_sjf.select(queue, k, now)) == _ids(sjf.select(queue, k, now))
+
+
+def test_sjf_prototype_semantics():
+    rng = random.Random(31415)  # noqa: S311 — reproducible test data, not crypto
+    queue = _queue(rng, 6)
+    for r, service in zip(queue, [500.0, 20.0, 20.0, 900.0, 5.0, 100.0], strict=True):
+        r.service_ms = service
+    now = queue[-1].ready_ms
+    # no starvation: pure service order, ties keep queue order
+    picked = SJFPolicy(starve_ms=1e12).select(queue, 3, now)
+    assert _ids(picked) == ["r4", "r1", "r2"]
+    # everyone starved: collapses to FIFO
+    assert _ids(SJFPolicy(starve_ms=0.0).select(queue, 3, now)) == _ids(queue[:3])
+
+
+def _contended_fixture(tmp_path):
+    """Six one-step sessions arriving in bursts with mixed service times, so a
+    single executor with batch 2 makes real (order-sensitive) choices."""
+    events = []
+    services = [30_000, 1_000, 15_000, 2_000, 45_000, 500]
+    for i, service in enumerate(services):
+        session = f"s{i}"
+        arrive = (i // 2) * 1_000  # pairs arrive together: 0, 1s, 2s
+        events += [
+            _session(session),
+            _prompt(session, arrive),
+            _api(session, None, f"a{i}", arrive, service),
+        ]
+    _write_events(tmp_path, events)
+    return build_workload(tmp_path / "events.jsonl")
+
+
+def _run(workload, policy):
+    config = SimConfig(executors=1, max_batch=2, max_wait_ms=100.0, policy=policy)
+    results = Simulation(workload, config).run()
+    results["config"]["policy"] = "-"  # the only field allowed to differ
+    return results
+
+
+def test_full_sim_parity_fifo(tmp_path):
+    workload = _contended_fixture(tmp_path)
+    assert _run(workload, "fifo") == _run(workload, "core-fifo")
+
+
+def test_full_sim_parity_sjf(tmp_path):
+    workload = _contended_fixture(tmp_path)
+    python_results = _run(workload, "sjf")
+    assert python_results == _run(workload, "core-sjf")
+    # and SJF must actually schedule differently from FIFO here, or parity is vacuous
+    assert python_results["turn_latency_ms"] != _run(workload, "fifo")["turn_latency_ms"]
+
+
+def test_rerun_determinism(tmp_path):
+    workload = _contended_fixture(tmp_path)
+    assert _run(workload, "core-sjf") == _run(workload, "core-sjf")

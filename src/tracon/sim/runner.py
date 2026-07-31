@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import Any
 
 from tracon.sim.engine import Engine
-from tracon.sim.policies import FIFOPolicy, Policy
+from tracon.sim.policies import make_policy
 from tracon.sim.server import ModelServer, Request
 from tracon.sim.workload import StreamKey, Turn, Workload, build_workload
 from tracon.trace.characterize import dist
@@ -32,12 +32,6 @@ class SimConfig:
     max_wait_ms: float = 10.0
     time_compress: float = 1.0
     policy: str = "fifo"
-
-
-def make_policy(name: str) -> Policy:
-    if name == "fifo":
-        return FIFOPolicy()
-    raise ValueError(f"unknown policy: {name}")
 
 
 @dataclass
