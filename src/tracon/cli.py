@@ -77,6 +77,8 @@ def _cmd_simulate(args: argparse.Namespace) -> int:
         time_compress=args.compress,
         policy=args.policy,
         replicate=args.replicate,
+        cold_penalty_ms=args.cold_penalty,
+        resident_streams=args.resident,
     )
     results = simulate(args.traces, config)
     out = args.out
@@ -124,19 +126,24 @@ def _cmd_sweep(args: argparse.Namespace) -> int:
                 max_wait_ms=args.max_wait,
                 policy=policy,
                 replicate=factor,
+                cold_penalty_ms=args.cold_penalty,
+                resident_streams=args.resident,
             )
             rows.append(Simulation(workload, config).run())
 
     args.out.write_text(json.dumps(rows, indent=2) + "\n", encoding="utf-8")
-    print(f"| load | policy | p50 | p95 | p99 | queue p95 | util |  ({args.out})")
-    print("|---|---|---|---|---|---|---|")
+    print(f"| load | policy | p50 | p95 | p99 | queue p95 | util | warm |  ({args.out})")
+    print("|---|---|---|---|---|---|---|---|")
     for row in rows:
         latency, config = row["turn_latency_ms"], row["config"]
+        context = row["context"]
+        serves = context["warm_serves"] + context["cold_serves"]
+        warm = f"{context['warm_serves'] / serves:.0%}" if serves else "—"
         print(
             f"| {config['replicate']}x | {config['policy']} "
             f"| {latency['p50'] / 1000:.1f}s | {latency['p95'] / 1000:.1f}s "
             f"| {latency['p99'] / 1000:.1f}s "
-            f"| {row['queue_wait_ms']['p95'] / 1000:.2f}s | {row['utilization']} |"
+            f"| {row['queue_wait_ms']['p95'] / 1000:.2f}s | {row['utilization']} | {warm} |"
         )
     return EXIT_OK
 
@@ -212,6 +219,18 @@ def main(argv: list[str] | None = None) -> int:
         default=1,
         help="phase-offset workload copies — the load knob (default: 1)",
     )
+    sim.add_argument(
+        "--cold-penalty",
+        type=float,
+        default=0.0,
+        help="added service ms when a stream's context is cold (default: 0)",
+    )
+    sim.add_argument(
+        "--resident",
+        type=int,
+        default=4,
+        help="per-executor context LRU capacity in streams (default: 4)",
+    )
     sim.add_argument("--out", type=Path, default=None, help="results JSON path")
     sim.set_defaults(func=_cmd_simulate)
 
@@ -234,6 +253,18 @@ def main(argv: list[str] | None = None) -> int:
     sweep.add_argument("--max-batch", type=int, default=8, help="dynamic batch size (default: 8)")
     sweep.add_argument(
         "--max-wait", type=float, default=10.0, help="batching wait in ms (default: 10)"
+    )
+    sweep.add_argument(
+        "--cold-penalty",
+        type=float,
+        default=0.0,
+        help="added service ms when a stream's context is cold (default: 0)",
+    )
+    sweep.add_argument(
+        "--resident",
+        type=int,
+        default=4,
+        help="per-executor context LRU capacity in streams (default: 4)",
     )
     sweep.add_argument("--out", type=Path, required=True, help="results JSON path")
     sweep.set_defaults(func=_cmd_sweep)

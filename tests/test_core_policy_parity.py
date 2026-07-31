@@ -9,7 +9,14 @@ import random
 
 from test_sim import _api, _prompt, _session, _write_events, chain_fixture
 
-from tracon.sim.policies import FIFOPolicy, SJFPolicy, UnblockPolicy, make_policy
+from tracon.sim.policies import (
+    AffinityPolicy,
+    FIFOPolicy,
+    SJFPolicy,
+    TraconPolicy,
+    UnblockPolicy,
+    make_policy,
+)
 from tracon.sim.runner import SimConfig, Simulation
 from tracon.sim.server import Request
 from tracon.sim.workload import build_workload
@@ -42,19 +49,36 @@ def _ids(batch):
     return [r.req_id for r in batch]
 
 
+class _FakeServer:
+    """Just enough server for affinity-aware policies: a fixed warm-stream set."""
+
+    def __init__(self, warm):
+        self._warm = warm
+
+    def warm_free_streams(self):
+        return self._warm
+
+
 def test_selection_parity_on_randomized_queues():
     rng = random.Random(2718)  # noqa: S311 — reproducible test data, not crypto
-    pairs = [
-        (FIFOPolicy(), make_policy("core-fifo")),
-        (SJFPolicy(), make_policy("core-sjf")),
-        (UnblockPolicy(), make_policy("core-unblock")),
-    ]
     for _ in range(300):
         queue = _queue(rng, rng.randrange(30))
         k = rng.randrange(9)
         # now at/after the newest request; large offsets push requests past the guard
         now = (queue[-1].ready_ms if queue else 0.0) + rng.choice([0.0, 500.0, 70_000.0])
+        warm = {r.stream for r in queue if rng.random() < 0.4}
+        pairs = [
+            (FIFOPolicy(), make_policy("core-fifo")),
+            (SJFPolicy(), make_policy("core-sjf")),
+            (UnblockPolicy(), make_policy("core-unblock")),
+            (AffinityPolicy(), make_policy("core-affinity")),
+            (TraconPolicy(), make_policy("core-tracon")),
+        ]
         for prototype, core in pairs:
+            for policy in (prototype, core):
+                bind = getattr(policy, "bind_server", None)
+                if bind is not None:
+                    bind(_FakeServer(warm))
             assert _ids(core.select(queue, k, now)) == _ids(prototype.select(queue, k, now))
 
 

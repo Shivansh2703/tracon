@@ -33,6 +33,8 @@ class SimConfig:
     time_compress: float = 1.0
     policy: str = "fifo"
     replicate: int = 1  # workload copies with phase offsets (the load knob)
+    cold_penalty_ms: float = 0.0  # added service when a stream's context is cold
+    resident_streams: int = 4  # per-executor context LRU capacity
 
 
 @dataclass
@@ -55,13 +57,19 @@ class Simulation:
         self._workload = workload
         self._config = config
         self._engine = Engine()
+        policy = make_policy(config.policy)
         self._server = ModelServer(
             self._engine,
-            make_policy(config.policy),
+            policy,
             executors=config.executors,
             max_batch=config.max_batch,
             max_wait_ms=config.max_wait_ms,
+            cold_penalty_ms=config.cold_penalty_ms,
+            resident_streams=config.resident_streams,
         )
+        bind = getattr(policy, "bind_server", None)
+        if bind is not None:  # affinity-aware policies read executor residency
+            bind(self._server)
         self._runs: dict[str, _TurnRun] = {}
         self._referenced: set[StreamKey] = {
             tool.spawned_stream
@@ -218,6 +226,8 @@ class Simulation:
                 "time_compress": config.time_compress,
                 "policy": config.policy,
                 "replicate": config.replicate,
+                "cold_penalty_ms": config.cold_penalty_ms,
+                "resident_streams": config.resident_streams,
             },
             "turns_completed": len(turn_latencies),
             "turns_incomplete": incomplete,
@@ -233,6 +243,10 @@ class Simulation:
                 else 0,
             },
             "utilization": utilization,
+            "context": {
+                "warm_serves": stats.warm_serves,
+                "cold_serves": stats.cold_serves,
+            },
             "makespan_hours": round(makespan / 3_600_000, 2),
             "fidelity": fidelity,
             "workload_skipped": self._workload.skipped,

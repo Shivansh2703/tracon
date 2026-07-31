@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING, Protocol
 import tracon_core
 
 if TYPE_CHECKING:
-    from tracon.sim.server import Request
+    from tracon.sim.server import ModelServer, Request
     from tracon.sim.workload import StreamKey
 
 # SJF guard: a request waiting this long jumps the line. A backstop, not the rule —
@@ -84,6 +84,53 @@ class UnblockPolicy:
         return (starved + fresh)[:k]
 
 
+class AffinityPolicy:
+    """Session-aware: requests whose stream context is warm on a free executor go
+    first, avoiding cold-context reload penalties; FIFO within warm/cold groups.
+    The server reports residency via ``bind_server`` (98.9% of real model input is
+    cache-read — context locality is the dominant regime)."""
+
+    name = "affinity"
+
+    def __init__(self, starve_ms: float = STARVE_MS) -> None:
+        self.starve_ms = starve_ms
+        self._server: ModelServer | None = None
+
+    def bind_server(self, server: ModelServer) -> None:
+        self._server = server
+
+    def select(self, queue: list[Request], k: int, now: float) -> list[Request]:
+        warm = self._server.warm_free_streams() if self._server is not None else set()
+        starved = [r for r in queue if now - r.ready_ms >= self.starve_ms]
+        starved.sort(key=lambda r: r.ready_ms)
+        fresh = [r for r in queue if now - r.ready_ms < self.starve_ms]
+        fresh.sort(key=lambda r: 0 if r.stream in warm else 1)
+        return (starved + fresh)[:k]
+
+
+class TraconPolicy:
+    """The flagship: dependency-aware first (most blocked waiters), session-aware
+    second (warm context), FIFO last. Never reads ``service_ms`` — unlike oracle
+    SJF, a real server could run this policy as-is."""
+
+    name = "tracon"
+
+    def __init__(self, starve_ms: float = STARVE_MS) -> None:
+        self.starve_ms = starve_ms
+        self._server: ModelServer | None = None
+
+    def bind_server(self, server: ModelServer) -> None:
+        self._server = server
+
+    def select(self, queue: list[Request], k: int, now: float) -> list[Request]:
+        warm = self._server.warm_free_streams() if self._server is not None else set()
+        starved = [r for r in queue if now - r.ready_ms >= self.starve_ms]
+        starved.sort(key=lambda r: r.ready_ms)
+        fresh = [r for r in queue if now - r.ready_ms < self.starve_ms]
+        fresh.sort(key=lambda r: (-r.waiters(), 0 if r.stream in warm else 1))
+        return (starved + fresh)[:k]
+
+
 class CorePolicy:
     """Adapter over the compiled core: plain views cross, positions come back.
 
@@ -96,8 +143,13 @@ class CorePolicy:
         self._kernel = kernel
         self._starve_ms = starve_ms
         self._streams: dict[StreamKey, int] = {}
+        self._server: ModelServer | None = None
+
+    def bind_server(self, server: ModelServer) -> None:
+        self._server = server
 
     def _views(self, queue: list[Request]) -> list[tracon_core.RequestView]:
+        warm = self._server.warm_free_streams() if self._server is not None else set()
         return [
             tracon_core.RequestView(
                 req=i,
@@ -105,6 +157,7 @@ class CorePolicy:
                 ready_ms=r.ready_ms,
                 service_ms=r.service_ms,
                 waiters=r.waiters(),
+                warm=1 if r.stream in warm else 0,
             )
             for i, r in enumerate(queue)
         ]
@@ -117,6 +170,10 @@ class CorePolicy:
             picked = tracon_core.select_sjf(views, k, now, self._starve_ms)
         elif self._kernel == "unblock":
             picked = tracon_core.select_unblock(views, k, now, self._starve_ms)
+        elif self._kernel == "affinity":
+            picked = tracon_core.select_affinity(views, k, now, self._starve_ms)
+        elif self._kernel == "tracon":
+            picked = tracon_core.select_tracon(views, k, now, self._starve_ms)
         else:
             raise ValueError(f"unknown core kernel: {self._kernel}")
         return [queue[i] for i in picked]
@@ -129,6 +186,10 @@ def make_policy(name: str) -> Policy:
         return SJFPolicy()
     if name == "unblock":
         return UnblockPolicy()
+    if name == "affinity":
+        return AffinityPolicy()
+    if name == "tracon":
+        return TraconPolicy()
     if name.startswith("core-"):
         return CorePolicy(name.removeprefix("core-"))
     raise ValueError(f"unknown policy: {name}")
