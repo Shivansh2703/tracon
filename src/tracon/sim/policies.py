@@ -60,6 +60,30 @@ class SJFPolicy:
         return (starved + fresh)[:k]
 
 
+class UnblockPolicy:
+    """Dependency-aware: serve the request whose completion unblocks the most
+    waiting work.
+
+    ``waiters`` counts chains provably blocked on this request's chain: a
+    same-stream next turn whose arrival already fired (the queued-prompt case —
+    74% of real prompts arrive while the agent is busy), or a parent gated on a
+    sync spawn. Direct counts only, no transitive closure. Zero-waiter requests
+    and ties fall back to queue order; the starvation guard matches SJF's.
+    """
+
+    name = "unblock"
+
+    def __init__(self, starve_ms: float = STARVE_MS) -> None:
+        self.starve_ms = starve_ms
+
+    def select(self, queue: list[Request], k: int, now: float) -> list[Request]:
+        starved = [r for r in queue if now - r.ready_ms >= self.starve_ms]
+        starved.sort(key=lambda r: r.ready_ms)
+        fresh = [r for r in queue if now - r.ready_ms < self.starve_ms]
+        fresh.sort(key=lambda r: -r.waiters())
+        return (starved + fresh)[:k]
+
+
 class CorePolicy:
     """Adapter over the compiled core: plain views cross, positions come back.
 
@@ -80,6 +104,7 @@ class CorePolicy:
                 stream=self._streams.setdefault(r.stream, len(self._streams)),
                 ready_ms=r.ready_ms,
                 service_ms=r.service_ms,
+                waiters=r.waiters(),
             )
             for i, r in enumerate(queue)
         ]
@@ -90,6 +115,8 @@ class CorePolicy:
             picked = tracon_core.select_fifo_views(views, k)
         elif self._kernel == "sjf":
             picked = tracon_core.select_sjf(views, k, now, self._starve_ms)
+        elif self._kernel == "unblock":
+            picked = tracon_core.select_unblock(views, k, now, self._starve_ms)
         else:
             raise ValueError(f"unknown core kernel: {self._kernel}")
         return [queue[i] for i in picked]
@@ -100,6 +127,8 @@ def make_policy(name: str) -> Policy:
         return FIFOPolicy()
     if name == "sjf":
         return SJFPolicy()
+    if name == "unblock":
+        return UnblockPolicy()
     if name.startswith("core-"):
         return CorePolicy(name.removeprefix("core-"))
     raise ValueError(f"unknown policy: {name}")

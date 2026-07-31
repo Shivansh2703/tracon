@@ -19,6 +19,10 @@ if TYPE_CHECKING:
     from tracon.sim.workload import StreamKey
 
 
+def _no_waiters() -> int:
+    return 0
+
+
 @dataclass
 class Request:
     req_id: str
@@ -28,6 +32,9 @@ class Request:
     ready_ms: float = 0.0
     start_ms: float | None = None
     finish_ms: float | None = None
+    # live count of chains blocked on this request's completion (runner-provided,
+    # read at selection time — a prompt queued after submit must still be seen)
+    waiters: Callable[[], int] = _no_waiters
 
     @property
     def queue_wait_ms(self) -> float:

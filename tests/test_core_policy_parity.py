@@ -7,12 +7,16 @@ full simulations where results must match byte-for-byte modulo the policy name.
 
 import random
 
-from test_sim import _api, _prompt, _session, _write_events
+from test_sim import _api, _prompt, _session, _write_events, chain_fixture
 
-from tracon.sim.policies import FIFOPolicy, SJFPolicy, make_policy
+from tracon.sim.policies import FIFOPolicy, SJFPolicy, UnblockPolicy, make_policy
 from tracon.sim.runner import SimConfig, Simulation
 from tracon.sim.server import Request
 from tracon.sim.workload import build_workload
+
+
+def _const(n: int):
+    return lambda: n
 
 
 def _queue(rng, n):
@@ -28,6 +32,7 @@ def _queue(rng, n):
                 service_ms=rng.choice([1.0, 40.0, 40.0, 9_000.0]),
                 on_complete=lambda: None,
                 ready_ms=ready,
+                waiters=_const(rng.randrange(4)),
             )
         )
     return queue
@@ -39,15 +44,18 @@ def _ids(batch):
 
 def test_selection_parity_on_randomized_queues():
     rng = random.Random(2718)  # noqa: S311 — reproducible test data, not crypto
-    fifo, sjf = FIFOPolicy(), SJFPolicy()
-    core_fifo, core_sjf = make_policy("core-fifo"), make_policy("core-sjf")
+    pairs = [
+        (FIFOPolicy(), make_policy("core-fifo")),
+        (SJFPolicy(), make_policy("core-sjf")),
+        (UnblockPolicy(), make_policy("core-unblock")),
+    ]
     for _ in range(300):
         queue = _queue(rng, rng.randrange(30))
         k = rng.randrange(9)
         # now at/after the newest request; large offsets push requests past the guard
-        now = (queue[-1].ready_ms if queue else 0.0) + rng.choice([0.0, 500.0, 20_000.0])
-        assert _ids(core_fifo.select(queue, k, now)) == _ids(fifo.select(queue, k, now))
-        assert _ids(core_sjf.select(queue, k, now)) == _ids(sjf.select(queue, k, now))
+        now = (queue[-1].ready_ms if queue else 0.0) + rng.choice([0.0, 500.0, 70_000.0])
+        for prototype, core in pairs:
+            assert _ids(core.select(queue, k, now)) == _ids(prototype.select(queue, k, now))
 
 
 def test_sjf_prototype_semantics():
@@ -103,3 +111,52 @@ def test_full_sim_parity_sjf(tmp_path):
 def test_rerun_determinism(tmp_path):
     workload = _contended_fixture(tmp_path)
     assert _run(workload, "core-sjf") == _run(workload, "core-sjf")
+
+
+def test_sync_spawn_child_counts_blocked_parent(tmp_path):
+    workload = build_workload(chain_fixture(tmp_path) / "events.jsonl")
+    sim = Simulation(workload, SimConfig(executors=None))
+    sim.run()
+    assert sim._runs["s1#ag1#t0"].blocked_waiters == 1
+
+
+def _queued_turn_fixture(tmp_path):
+    """B and C (30s each) arrive just before A's 10s turn; A's next turn is
+    delivered at its traced time (10.2s), which lands mid-queue under contention."""
+    events = [
+        _session("s1"),
+        _prompt("s1", 0),
+        _api("s1", None, "b1", 0, 30_000),
+        _session("s2"),
+        _prompt("s2", 50),
+        _api("s2", None, "c1", 50, 30_000),
+        _session("s0"),
+        _prompt("s0", 100),
+        _api("s0", None, "a0", 100, 10_000),
+        _prompt("s0", 10_200),
+        _api("s0", None, "a1", 10_200, 1_000),
+    ]
+    _write_events(tmp_path, events)
+    return build_workload(tmp_path / "events.jsonl")
+
+
+def test_arrived_next_turn_counts_as_waiter(tmp_path):
+    workload = _queued_turn_fixture(tmp_path)
+    sim = Simulation(
+        workload, SimConfig(executors=1, max_batch=1, max_wait_ms=0.0, policy="core-unblock")
+    )
+    sim.run()
+    # A's second turn arrived (10.2s) while turn 0 was still queued behind B
+    assert sim._runs["s0#main#t0"].blocked_waiters == 1
+
+
+def test_unblock_beats_fifo_for_blocking_chains(tmp_path):
+    workload = _queued_turn_fixture(tmp_path)
+
+    def run(policy):
+        config = SimConfig(executors=1, max_batch=1, max_wait_ms=0.0, policy=policy)
+        return Simulation(workload, config).run()["turn_latency_ms"]
+
+    fifo, unblock = run("fifo"), run("core-unblock")
+    # unblock serves A's turn 0 before C (a queued turn waits on it): mean drops
+    assert unblock["mean"] < fifo["mean"]

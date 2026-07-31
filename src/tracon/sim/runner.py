@@ -38,10 +38,15 @@ class SimConfig:
 class _TurnRun:
     turn: Turn
     gates: int
+    prev: _TurnRun | None = None
     started_ms: float | None = None
     completion_ms: float | None = None
     pending_tools: int = 0
     waiters: list[Any] = field(default_factory=list)
+    # chains demonstrably blocked on this one: a same-stream next turn whose clock
+    # arrival already fired, or a parent gated on this sync spawn. Direct counts
+    # only — no transitive closure through spawn trees (documented limitation).
+    blocked_waiters: int = 0
 
 
 class Simulation:
@@ -75,15 +80,20 @@ class Simulation:
                 clock_released = not turn.spawned or turn.stream not in self._referenced
                 gates = (1 if clock_released else 0) + (1 if prev is not None else 0)
                 # a spawned turn waits only for its parent's launch (1 implicit gate)
-                run = _TurnRun(turn=turn, gates=max(gates, 1))
+                run = _TurnRun(turn=turn, gates=max(gates, 1), prev=prev)
                 self._runs[turn.turn_id] = run
                 if prev is not None:
                     prev.waiters.append(partial(self._open_gate, run))
                 if clock_released:
-                    self._engine.at(self._arrival(turn), partial(self._open_gate, run))
+                    self._engine.at(self._arrival(turn), partial(self._clock_arrival, run))
                 prev = run
         self._engine.run()
         return self._results()
+
+    def _clock_arrival(self, run: _TurnRun) -> None:
+        self._open_gate(run)
+        if run.started_ms is None and run.prev is not None and run.prev.completion_ms is None:
+            run.prev.blocked_waiters += 1  # arrived, but queued behind its own stream
 
     def _open_gate(self, run: _TurnRun) -> None:
         run.gates -= 1
@@ -98,6 +108,7 @@ class Simulation:
             stream=run.turn.stream,
             service_ms=step.service_ms,
             on_complete=partial(self._model_done, run, index),
+            waiters=partial(self._blocked_waiters, run),
         )
         if step.pre_gap_ms > 0:  # traced client-side dead time before issuing
             self._engine.after(step.pre_gap_ms, partial(self._server.submit, request))
@@ -122,6 +133,7 @@ class Simulation:
                     else:
                         # parent resumes at child completion plus the traced
                         # notification/return overhead beyond the child's chain
+                        child.blocked_waiters += 1  # the parent is provably waiting
                         if tool.overhead_ms > 0:
                             child.waiters.append(
                                 partial(self._engine.after, tool.overhead_ms, done)
@@ -131,6 +143,10 @@ class Simulation:
                         self._launch_child(child)
                     continue
             self._engine.after(tool.duration_ms, done)
+
+    @staticmethod
+    def _blocked_waiters(run: _TurnRun) -> int:
+        return run.blocked_waiters
 
     def _launch_child(self, child: _TurnRun) -> None:
         if child.started_ms is None and child.completion_ms is None:

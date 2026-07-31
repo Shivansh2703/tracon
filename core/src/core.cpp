@@ -60,6 +60,19 @@ std::vector<std::size_t> select_sjf(const std::vector<RequestView>& queue, long 
     });
 }
 
+// Dependency-aware: serve the request whose completion unblocks the most waiting
+// work (waiters = same-stream turns already arrived + parents gated on a sync
+// spawn). Zero-waiter requests and ties fall back to queue order; same guard.
+std::vector<std::size_t> select_unblock(const std::vector<RequestView>& queue, long long k,
+                                        double now, double starve_ms) {
+    return take_k(queue.size(), k, [&](std::size_t i) {
+        const bool starved = now - queue[i].ready_ms >= starve_ms;
+        return std::make_tuple(starved ? 0 : 1,
+                               starved ? queue[i].ready_ms
+                                       : -static_cast<double>(queue[i].waiters));
+    });
+}
+
 }  // namespace
 
 PYBIND11_MODULE(tracon_core, m) {
@@ -82,5 +95,7 @@ PYBIND11_MODULE(tracon_core, m) {
     m.def("select_fifo", &select_fifo, py::arg("ready_ms"), py::arg("k"));
     m.def("select_fifo_views", &select_fifo_views, py::arg("queue"), py::arg("k"));
     m.def("select_sjf", &select_sjf, py::arg("queue"), py::arg("k"), py::arg("now"),
+          py::arg("starve_ms"));
+    m.def("select_unblock", &select_unblock, py::arg("queue"), py::arg("k"), py::arg("now"),
           py::arg("starve_ms"));
 }
