@@ -21,7 +21,7 @@ from typing import Any
 from tracon.sim.engine import Engine
 from tracon.sim.policies import make_policy
 from tracon.sim.server import ModelServer, Request
-from tracon.sim.workload import StreamKey, Turn, Workload, build_workload
+from tracon.sim.workload import StreamKey, Turn, Workload, build_workload, replicate_workload
 from tracon.trace.characterize import dist
 
 
@@ -32,6 +32,7 @@ class SimConfig:
     max_wait_ms: float = 10.0
     time_compress: float = 1.0
     policy: str = "fifo"
+    replicate: int = 1  # workload copies with phase offsets (the load knob)
 
 
 @dataclass
@@ -216,6 +217,7 @@ class Simulation:
                 "max_wait_ms": config.max_wait_ms,
                 "time_compress": config.time_compress,
                 "policy": config.policy,
+                "replicate": config.replicate,
             },
             "turns_completed": len(turn_latencies),
             "turns_incomplete": incomplete,
@@ -238,5 +240,5 @@ class Simulation:
 
 
 def simulate(traces_dir: Path, config: SimConfig) -> dict[str, Any]:
-    workload = build_workload(traces_dir / "events.jsonl")
+    workload = replicate_workload(build_workload(traces_dir / "events.jsonl"), config.replicate)
     return Simulation(workload, config).run()
