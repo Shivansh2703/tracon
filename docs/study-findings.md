@@ -85,6 +85,12 @@ study reports a bracket rather than inventing a point estimate:
 
 The truth lies between. Both are carried everywhere; neither is collapsed into a headline.
 
+One subtlety worth stating because it looks like an inconsistency: the lower bound splits a run
+wherever `result_chars` changes, so it can report *more, shorter* runs over the same calls than
+the upper bound does. The quantity that is guaranteed monotone between the bounds is *calls
+inside a repeat run*, which is what the headline uses. Run-length distributions below are
+quoted from the upper bound only.
+
 ### Result: looping is rare, shallow, and not a failure signature
 
 | Measure | Lower bound | Upper bound |
