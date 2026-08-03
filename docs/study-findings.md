@@ -2,8 +2,17 @@
 
 An empirical failure-mode analysis of 85,104 tool calls across 1,854 real agent runs.
 
-*Generated from `results/study.json`. Every figure below is reproduced by
-`python -m agentfail report --trace <export>`; nothing is transcribed by hand.*
+*Generated from `results/study.json`. Every figure about **this** corpus is reproduced by
+`python -m agentfail report --trace <export>`; nothing about it is transcribed by hand.
+Figures about the **public replication corpus** are transcribed verbatim from
+`docs/REPLICATION.md` and are marked as such wherever they appear.*
+
+**Status (2026-08-03): externally replicated, and one finding's scope corrected.**
+94,059 tool calls from 3,895 headless runs by 13 models in a different harness were run
+through these same analyses (`docs/REPLICATION.md`). Finding 2 replicated far more
+strongly and has dropped its operator caveat. Finding 3 is **false as stated about
+"agents"** and has been restated as a claim about *frontier models*. Finding 1 is not
+testable on any public corpus. One factual error in Q4 was found and is corrected below.
 
 ---
 
@@ -17,7 +26,11 @@ sample is large; it is not representative.
 
 Six limitations, stated once, applying to everything that follows:
 
-1. **Single operator.** One person's prompting, one person's risk tolerance, one person's tooling.
+1. ~~**Single operator.**~~ **Answered externally (2026-08-03).** One person's prompting, one
+   person's risk tolerance, one person's tooling - but the behaviour reproduces in a headless
+   harness with no operator at all (`docs/REPLICATION.md`). What replaces it is **single
+   production corpus**: every public agent dataset is short, step-capped benchmark output, and
+   there is no public corpus of real production agent sessions at all.
 2. **Single harness.** Claude Code, 24 versions across the window. No other agent framework.
 3. **Single domain.** His own repos - software engineering, not customer support, not agentic RPA.
 4. **Content-stripped by design.** The export retains shapes, sizes, ids and timings. It retains
@@ -91,7 +104,7 @@ the upper bound does. The quantity that is guaranteed monotone between the bound
 inside a repeat run*, which is what the headline uses. Run-length distributions below are
 quoted from the upper bound only.
 
-### Result: looping is rare, shallow, and not a failure signature
+### Result in this corpus: looping is rare, shallow, and not a failure signature
 
 | Measure | Lower bound | Upper bound |
 |---|---|---|
@@ -113,11 +126,64 @@ stuck run ended `failed`/`killed`, versus 25 of 1,601 without. **No predictive s
 only 25 hard failures corpus-wide, this comparison is underpowered by construction and cannot
 rule out a real effect.**
 
-> **Finding (boring, and reported boring): agents in this corpus do not meaningfully loop.**
-> Between 1.2% and 2.1% of runs contain anything a human would call stuck, and the deepest
-> example is legitimate pagination. If you are building loop-detection for this workload, you
-> are building for a failure mode that occurs in roughly 1 run in 60 - and your detector's
+> **Finding (scope corrected 2026-08-03): *frontier models* do not meaningfully loop.**
+> In this corpus - which ran Anthropic frontier models throughout - between 1.2% and 2.1% of
+> runs contain anything a human would call stuck, and the deepest example is legitimate
+> pagination. If you are building loop-detection **for a frontier-model workload**, you are
+> building for a failure mode that occurs in roughly 1 run in 60, and your detector's
 > false-positive rate will likely exceed the phenomenon.
+>
+> **Stated about "agents" this is false, and the earlier version of this document stated it
+> that way.** See below.
+
+### What the replication did to this finding
+
+*Figures transcribed from `docs/REPLICATION.md`.*
+
+The same analyses were run over 94,059 tool calls from 3,895 headless OpenHands runs on
+SWE-bench Lite, by 13 models from six vendors. **Corpus-wide, this finding is contradicted:**
+
+| | Original | Public | Test |
+|---|---|---|---|
+| Calls inside a repeat run | 1.29% - 3.57% | **7.49% - 19.48%** | |
+| Runs with a stuck (>=5) run | 1.15% - 2.08% | **11.93% - 25.01%** | |
+| Blind identical retry after an error | **1.76%** (50/2,843) | **16.12%** (4,657/28,886) | z = 20.6, p = 6.5e-94 |
+| Adaptive next action | 96.94% | 80.10% | |
+
+**But the 13 models do not agree with each other**, and that is the whole result. Blind-retry
+rate spans **0.7% to 31.9%** inside one harness - a wider gap than between the two corpora -
+and the three frontier Claude runs sit at the bottom of it:
+
+| Model run | Calls | Blind retry % | Stuck runs % (lo-hi) |
+|---|---|---|---|
+| claude-3-5-sonnet (v2.2) | 7,531 | **0.7** | 0.0 - 2.7 |
+| claude-3-5-haiku (v2.1) | 9,334 | **1.2** | 0.3 - 1.0 |
+| claude-3-5-sonnet (v2.1) | 7,997 | **1.8** | 0.3 - 3.3 |
+| gpt-4o | 7,109 | 13.5 | 11.7 - 36.3 |
+| qwen-2.5-72b | 5,632 | 20.1 | 21.7 - 43.7 |
+| deepseek-v2.5 | 5,537 | 28.1 | 28.0 - 56.0 |
+| llama-3.3-70b | 14,224 | **31.9** | 41.1 - 41.1 |
+| *(this corpus, for reference)* | *85,104* | *1.76* | *1.15 - 2.08* |
+
+Those frontier numbers are statistically indistinguishable from this corpus's 1.76% and
+1.15-2.08% - in a different harness, on a different workload, with no human present.
+**The low loop rate was measuring the model, not the operator.**
+
+**And now there is ground truth, which this corpus never had.** SWE-bench scores 2,253 of
+the public runs against the repository's own tests. A stuck repeat run cuts resolution from
+**38.58%** [36.33-40.89] (674/1,747) to **14.43%** [11.63-17.76] (73/506), z = -10.16,
+**p = 2.9e-24**. A harness-flagged loop cuts it to 6.87% (34/495). So the advice above is
+conditional rather than wrong: **loop detection is genuinely not worth building for a
+frontier-model workload, and is worth building for a mixed-model one** - where the phenomenon
+is 1 run in 5 and each occurrence costs most of the run's chance of being right.
+
+**The bracket is now calibrated.** The public corpus keeps real tool arguments, so the same
+looping analysis was run twice - once over this study's lossy shape fingerprint, once over a
+hash of the actual arguments. Truth landed **74% of the way from the lower bound to the
+upper** (7.49% lower / **16.42% exact** / 19.48% upper). Anyone reading `1.29% - 3.57%` as
+"probably about 1.3%" is reading it wrong: **quote the upper bound as the working estimate.**
+(The collision rate depends on argument-length distribution, so this calibrates the method,
+not this corpus's specific numbers.)
 
 ---
 
@@ -165,6 +231,11 @@ And the model response that consumed the failed result (n = 2,843):
 > **Finding: error handling is the strongest behaviour in this corpus.** After a tool failure
 > the agent adapts - different arguments or a different tool - in 96.9% of cases, and retries
 > blindly in 1.76%. The "dumb retry loop" is essentially absent (50 occurrences in 85,104 calls).
+>
+> **Scope, same correction as Q1.** This is a property of the models, not of agents generally.
+> Across 13 models headless, adaptive response falls to 80.10% and blind retry rises to 16.12%
+> - but the frontier Claude runs in that corpus retry blindly at 0.7-1.8%, matching this
+> corpus. Read it as *frontier models handle errors well*, never as *agents do*.
 
 ### The money question: does it proceed on a failed result?
 
@@ -219,6 +290,14 @@ of calls are errors (n=90). By >=30 minutes, half are (n=8 - too small to lean o
 > **Finding: elapsed time is the single best cheap predictor of tool failure available in this
 > data.** It needs no model, no content, no semantics - just a clock. A tool call that has been
 > running 10 minutes is roughly 9x likelier to end in an error than a typical call.
+>
+> **Untestable externally, and reported as untestable.** *(transcribed from
+> `docs/REPLICATION.md`)* The public benchmark harness caps command duration, so its >=60s
+> tail is **0.22%** of calls against **3.71%** here - 208 calls out of 94,059. The sign there
+> is the same (40.87% vs 30.69%, 1.33x, z = 3.18, p = 0.0015) but the effect dies under the
+> shell-only sensitivity check: **1.05x (41.54% vs 39.58%, p = 0.58)**. Neither confirmed nor
+> refuted; **this finding remains scoped to this corpus** until somebody publishes production
+> traces with an untruncated tail.
 
 Also worth naming: **4.3% of >=60s calls are the agent waiting on a human** (`AskUserQuestion`,
 `ExitPlanMode` - 147 calls). Any latency budget that counts these as agent slowness is measuring
@@ -262,16 +341,32 @@ rates. Stratifying inside single tools:
 **The effect does not survive stratification in the two largest tools.** One of three tools shows
 a weak negative trend at p = 0.019, uncorrected for three comparisons.
 
-> **Finding (negative, and the most solidly-powered claim in this study): there is no evidence
-> that tool-call failures increase with context pressure in this corpus, across 25,199 joined
-> calls spanning 0 to 300k+ tokens. Any weak trend present runs in the *opposite* direction to
-> the folk claim and does not survive controlling for tool mix.**
+> **Finding (negative, and the study's strongest result - because it replicated, not because
+> of its own n): there is no evidence that tool-call failures increase with context pressure
+> in this corpus, across 25,199 joined calls spanning 0 to 300k+ tokens. Any weak trend present
+> runs in the *opposite* direction to the folk claim and does not survive controlling for tool
+> mix.**
 >
-> **This finding replicates externally** — z = -10.80 across 47,545 joined calls from 13 models
-> in a different harness (`docs/REPLICATION.md`). It is the one finding here that no longer
-> needs a single-operator caveat. It is *not*, however, this study's best-powered claim: that
-> description belonged to the retracted 81,979 figure, and the honest denominator is 25,199
-> from a subset that under-represents `Bash` and under-represents errors.
+> **This finding replicates externally, far more strongly** *(transcribed from
+> `docs/REPLICATION.md`)* — **z = -10.80, p = 3.4e-27 across 47,545 joined calls** from 13
+> models in a different harness with no operator present, against z = -2.33 here. Error rate
+> by context bin there runs 30.7% → 29.5% → 25.5% → 22.2% → 22.5% → 24.4% → 19.6%. **It is the
+> one finding here that no longer needs a single-operator caveat at all.**
+>
+> Two honest complications the public data can see and this corpus cannot. Inside single tools
+> the effect *splits* rather than simply surviving: `run_ipython` (n = 28,528) gives z = -15.97,
+> while `run` (shell, n = 19,017) gives z = **+3.42**, p = 0.00063 - the one curve that rises.
+> But that curve is not monotone (32.1% → 37.0% → 38.2% → 32.3% → 30.0%): it humps at 50-75k
+> and then falls, and a linear trend test is a poor summary of a hump. **Both corpora hump in
+> the same place** - this one climbs 1.6% → 2.5% → 3.6% over its first three bins before
+> flattening. That shared shape is more interesting than either corpus's overall sign, and
+> neither study is powered to say whether it is real degradation or a shift in what the agent
+> is doing at that stage.
+>
+> One thing this is *not*: **this study's best-powered claim.** That description belonged to
+> the retracted 81,979 figure, and the honest denominator is 25,199 from a subset that
+> under-represents `Bash` and under-represents errors. Its strength comes from the external
+> corpus, not from this one.
 
 **Compaction is unanswerable here for lack of data.** Only **38 compaction events** exist
 corpus-wide (33 manual, 5 automatic) across 26 streams. Error rate in the 10 minutes after a
@@ -348,28 +443,47 @@ Restricted to runs whose outcome was actually recorded:
 
 ## What this study is worth
 
-**The three findings I'd stand behind:**
+**The three findings I'd stand behind**, ordered by how well they survived being tested on
+somebody else's data:
 
-1. **Elapsed time predicts tool failure, strongly and cheaply.** 10.21% vs 3.07% error rate above
+1. **No context-pressure effect - the strongest result here.** Across 25,199 joined calls
+   spanning 0-300k+ tokens, failures do not rise with context, and the weak trend that exists
+   points the other way and dies under stratification. This contradicts a widely-repeated claim.
+   **Replicated externally on 47,545 calls from 13 models in another harness with no operator
+   present, at z = -10.80 against -2.33 here** - roughly five times the test statistic, in a
+   corpus that shares nothing with this one but the analysis code. **It carries no caveat about
+   operator, harness or model family any more.** Its strength is the replication; its own
+   denominator is a biased 30% subset (see Q4).
+2. **Frontier models barely loop, and handle errors excellently** - a claim about *models*, not
+   about *agents*. 1.15-2.08% of runs contain a stuck repeat; blind identical retry follows
+   1.76% of errors; adaptive response follows 96.9%.
+
+   **Scope corrected by the replication, and this is the correction that matters.** Stated as a
+   claim about agents it is false: across 3,895 headless runs by 13 models, blind retry is
+   **16.12%** (z = 20.6, p = 6.5e-94) and stuck runs are 11.93-25.01%. But blind retry spans
+   **0.7% to 31.9% across models inside that one harness**, and the frontier Claude runs land at
+   1.8%, 1.2% and 0.7%, with stuck runs at 0.3-3.3% - indistinguishable from the figures here,
+   in a different harness, on a different workload, with no human present. **The low loop rate
+   was measuring the model, not the operator.** New ground truth makes the advice conditional
+   rather than wrong: a stuck repeat run cuts SWE-bench resolution from **38.6% to 14.4%**
+   (p = 2.9e-24), so loop detection is genuinely not worth building for a frontier-model
+   workload and *is* worth building for a mixed-model one.
+3. **Elapsed time predicts tool failure, strongly and cheaply.** 10.21% vs 3.07% error rate above
    and below 60 seconds (n = 3,153 / 81,913, p ~ 1e-106), sharpening to 27.8% past ten minutes.
-   Actionable without any model in the loop. **Still scoped to this corpus:** no public dataset
-   has an untruncated tail to test it against, so it could be neither confirmed nor refuted
-   (`docs/REPLICATION.md`).
-2. **No context-pressure effect.** Across 25,199 joined calls spanning 0-300k+ tokens, failures
-   do not rise with context, and the weak trend that exists points the other way and dies under
-   stratification. This contradicts a widely-repeated claim. **Replicated externally** on 47,545
-   calls from 13 models in another harness, far more strongly (z = -10.80).
-3. **Looping barely exists, and error handling is excellent** - *for these models*. 1.15-2.08%
-   of runs contain a stuck repeat; blind identical retry follows 1.76% of errors; adaptive
-   response follows 96.9%.
+   Actionable without any model in the loop. **Neither confirmed nor refuted externally, and
+   claimed as neither:** the benchmark harness caps command duration, so its tail is 0.22% of
+   calls against 3.71% here, and the effect dies under a shell-only sensitivity check (1.05x,
+   p = 0.58). **Still scoped to this corpus** (`docs/REPLICATION.md`).
 
-   **Scope corrected by the replication.** Stated as a claim about agents, this is false: across
-   3,895 headless runs by 13 models, blind retry is 16.1% and stuck runs are 11.9-25.0%. But the
-   frontier Claude models in that corpus land at 0.7-1.8% blind retry and 0.3-3.3% stuck runs -
-   indistinguishable from the figures here, in a different harness with no operator present.
-   **The low loop rate was measuring the model, not the operator.** Weaker models loop up to 45x
-   more, and a stuck run costs them most of their chance of a correct answer (14.4% resolved vs
-   38.6%). See `docs/REPLICATION.md`.
+**A near-miss worth publishing, because it is the strongest evidence this study is being run
+honestly.** The replication's first adapter silently skipped the eight of thirteen runs that
+store history as `[action, observation]` pairs rather than a flat list. **2,398 of 3,895 runs
+registered zero tool calls, and every headline number was quietly computed from the five newest
+runs.** It raised no error and the output looked entirely plausible. It was caught only by
+noticing that `streams_with_tool_calls` was 1,497 when the corpus had 3,895 streams. That is
+precisely the bug class this project exists to find - a silent, plausible, wrong number - found
+inside this project's own analysis. A regression test pins it now; the general point stands, and
+every figure in `docs/REPLICATION.md` depends on one loading layer.
 
 **What the data could not answer:** premature confidence (content stripped, no ground truth);
 whether an agent proceeded on a failed result *in substance* rather than in structure; anything
@@ -384,6 +498,17 @@ this document.
   human in the loop. What remains is **n = 1 production corpus** - every public dataset is
   benchmark output, short and step-capped, so nothing external speaks to open-ended multi-day
   sessions. Closing that needs a second operator's telemetry, not more benchmarks.
+- **`n = 1 production corpus`, and that gap is itself a finding.** Three independent surveys of
+  every public candidate found exactly one corpus carrying the four fields these questions need
+  (per-call timing, tool identity, an error flag, per-call context tokens), and it is a
+  benchmark. **There is no public corpus of real production agent sessions at all.** Agent
+  benchmarks publish scores; nobody publishes traces. That is worth stating as a result rather
+  than as a lament: the reason a study like this one is rare is that the raw material does not
+  exist publicly, and four fields per tool call would fix it.
+- **Every number here depends on a loading layer that can fail silently**, and one such failure
+  was caught during the replication (see above). This is stated in the weaknesses list rather
+  than buried in a methods note because it nearly invalidated a whole document without raising
+  a single error.
 - **Shape-level repeat detection** carries a 2.8x spread between its bounds. That spread is the
   honest width of the uncertainty, and it is wide. The replication calibrates it for the first
   time against real arguments: on that corpus the truth sat 74% of the way from the lower bound

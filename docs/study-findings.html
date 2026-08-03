@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>How agentic coding sessions actually fail — an empirical study</title>
-<meta name="description" content="A failure-mode analysis of 85,104 tool calls across 1,854 agent runs: looping, tool errors, the long tail, and context pressure.">
+<meta name="description" content="A failure-mode analysis of 85,104 tool calls across 1,854 agent runs — looping, tool errors, the long tail, and context pressure — retested against 94,059 headless tool calls from 13 models, with one finding's scope corrected.">
 <style>
   :root{
     color-scheme: light;
@@ -226,6 +226,29 @@
   .n{ color: var(--ink-muted); font-size: 0.92em; }
   strong.figure{ font-weight: 700; }
 
+  /* Correction block — same construction as the limitations block, accent-keyed */
+  .correction{
+    background: color-mix(in srgb, var(--accent) 7%, var(--surface));
+    border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--hair));
+    border-radius: 10px;
+    padding: 26px 26px 22px;
+    margin: 0 0 8px;
+  }
+  .correction .tag{
+    display:flex; align-items:center; gap:8px;
+    font-size: 12.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+  .correction .tag svg{ width:15px; height:15px; flex:none; }
+  .correction p{ color: var(--ink); max-width: 70ch; }
+  .correction p:last-child{ margin-bottom: 0; }
+  .correction .tbl-scroll{ margin-bottom: 16px; }
+  .verdict-ok{ color: var(--good); font-weight: 700; }
+  .verdict-bad{ color: var(--critical); font-weight: 700; }
+  .verdict-open{ color: var(--ink-muted); font-weight: 700; }
+  td.verdict{ white-space: normal; min-width: 15ch; }
+
   /* Limitations block — same visual weight as findings, deliberately not a footnote */
   .limitations{
     background: var(--limit-bg);
@@ -388,13 +411,14 @@
   <div class="masthead-inner">
     <p class="eyebrow">Empirical study &middot; agent reliability</p>
     <h1>How agentic coding sessions actually fail</h1>
-    <p class="dek">A failure-mode analysis of 85,104 tool calls across 1,854 real agent runs, one developer's corpus, one harness, thirty days. The headline result is negative: agents in this corpus mostly don't loop, and error rates don't rise with context pressure.</p>
+    <p class="dek">A failure-mode analysis of 85,104 tool calls across 1,854 real agent runs, one developer's corpus, one harness, thirty days &mdash; then retested against 94,059 headless tool calls from 13 models. The strongest result is negative and it replicated: error rates do not rise with context pressure. The result about looping was stated too broadly and has been <a href="#correction">corrected</a>.</p>
     <div class="headline-stats">
       <div class="headline-stat"><div class="v num">85,104</div><div class="l">tool calls analyzed</div></div>
       <div class="headline-stat"><div class="v num">1,854</div><div class="l">agent streams</div></div>
       <div class="headline-stat"><div class="v num">30.2</div><div class="l">days spanned</div></div>
       <div class="headline-stat"><div class="v num">11</div><div class="l">projects</div></div>
-      <div class="headline-stat"><div class="v num">1</div><div class="l">operator</div></div>
+      <div class="headline-stat"><div class="v num">94,059</div><div class="l">external calls retested against</div></div>
+      <div class="headline-stat"><div class="v num">13</div><div class="l">models, no operator</div></div>
     </div>
   </div>
 </header>
@@ -402,16 +426,57 @@
 <main>
   <div class="wrap">
 
+    <section id="correction" aria-labelledby="correction-h">
+      <div class="correction">
+        <p class="tag" id="correction-h">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><polyline points="3 4 3 9 8 9"/></svg>
+          Correction &amp; external replication &middot; 3 August 2026
+        </p>
+        <p>This study has now been run against somebody else's data: <strong>94,059 tool calls from 3,895 agent runs by 13 models</strong> from six vendors, in a different harness (OpenHands CodeActAgent) on a different workload (SWE-bench Lite), <strong>with no human in the loop at all</strong>. The same analysis code, a new loading layer. One finding got much stronger, one was stated too broadly and is corrected here, and one cannot be tested on any public data.</p>
+
+        <div class="tbl-scroll">
+          <table class="wide-tbl">
+            <thead><tr><th>Finding</th><th>Verdict externally</th><th>What changed on this page</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>No context-pressure effect <span class="n">(Q4)</span></td>
+                <td class="verdict"><span class="verdict-ok">Replicates, far more strongly</span><br><span class="n">z = &minus;10.80 vs &minus;2.33, on 47,545 joined calls</span></td>
+                <td class="verdict">Its single-operator caveat is <strong>dropped entirely</strong>. It is now the study's strongest result.</td>
+              </tr>
+              <tr>
+                <td>Looping barely exists <span class="n">(Q1, Q2)</span></td>
+                <td class="verdict"><span class="verdict-bad">Contradicted as stated</span><br><span class="n">16.12% blind retry corpus-wide vs 1.76%, z = 20.6</span></td>
+                <td class="verdict">Restated as a claim about <strong>frontier models</strong>, not about &ldquo;agents&rdquo;. Stated about agents it is <strong>false</strong>, and this page previously stated it that way.</td>
+              </tr>
+              <tr>
+                <td>Elapsed time predicts failure <span class="n">(Q3)</span></td>
+                <td class="verdict"><span class="verdict-open">Untestable</span><br><span class="n">benchmark caps duration; tail is 0.22% of calls vs 3.71%</span></td>
+                <td class="verdict">Remains scoped to this corpus. <strong>Neither confirmed nor refuted</strong>, and claimed as neither.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p><strong>The finding that broke, in one sentence.</strong> Blind identical retry across the public corpus is <strong>16.12%</strong>, nine times this study's 1.76% &mdash; but blind retry spans <strong>0.7% to 31.9% across the 13 models inside that one harness</strong>, a wider gap than between the two corpora, and the frontier Claude runs land at 1.8%, 1.2% and 0.7% with stuck runs at 0.3&ndash;3.3%: statistically indistinguishable from this corpus, with no operator present. <strong>The low loop rate was measuring the model, not the man.</strong></p>
+
+        <p><strong>A factual error in this study, found and fixed.</strong> Q4 previously claimed that 81,979 of 85,104 calls join to a context size. <strong>Only 25,199 (29.6%) do</strong> &mdash; the rest reference an <code class="code">api_call</code> absent from the export &mdash; and the joinable subset is biased: 22.5% of <code class="code">Bash</code> calls join against 47.7% of <code class="code">Read</code>, and joined calls error at 2.79% against 3.57% unjoined. The direction of the result is unaffected. The claim that it was &ldquo;the best-powered claim in the study&rdquo; was wrong and has been withdrawn.</p>
+
+        <p><strong>What the limitation is now.</strong> <code class="code">n = 1 operator</code> is <strong>answered</strong>. What replaces it is <code class="code">n = 1 production corpus</code>, and that gap is itself a finding &mdash; see <a href="#gap">below</a>.</p>
+
+        <p class="n"><strong>On provenance.</strong> Every figure on this page about the original corpus is generated from <code class="code">results/study.json</code> by the command in the footer. Every figure about the public replication corpus is <strong>transcribed verbatim from <code class="code">docs/REPLICATION.md</code></strong> &mdash; none of it is re-derived by hand on this page.</p>
+      </div>
+    </section>
+
     <section id="limits" aria-labelledby="limits-h">
       <div class="limitations">
         <p class="tag">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
           Read this before any number
         </p>
-        <p class="corpus-line">This is one developer's corpus. Every session is one person's own, on his own software projects, in one harness (Claude Code), with his prompting style and his habit of running large subagent fleets. It is not a sample of &ldquo;agents in the wild&rdquo; and it cannot be generalised to other operators, other domains, or other tools without new data. The sample is large; it is not representative.</p>
+        <p class="corpus-line">This is one developer's corpus. Every session is one person's own, on his own software projects, in one harness (Claude Code), with his prompting style and his habit of running large subagent fleets. It is not a sample of &ldquo;agents in the wild&rdquo; and it cannot be generalised to other domains or other tools without new data. The sample is large; it is not representative. What <em>has</em> been tested outside it is set out <a href="#correction">above</a>.</p>
         <p>Six limitations, stated once, applying to everything that follows:</p>
         <ol id="limits-h">
-          <li><strong>Single operator.</strong> One person's prompting, one person's risk tolerance, one person's tooling.</li>
+          <li><strong><s>Single operator.</s> Answered externally.</strong> One person's prompting, one person's risk tolerance, one person's tooling &mdash; but the behaviour reproduces in a headless harness with no operator at all. What replaces this limitation is <strong>single production corpus</strong>: every public agent dataset is short, step-capped benchmark output, and there is <strong>no public corpus of real production agent sessions at all</strong>.</li>
           <li><strong>Single harness.</strong> Claude Code, 24 versions across the window. No other agent framework.</li>
           <li><strong>Single domain.</strong> His own repos &mdash; software engineering, not customer support, not agentic RPA.</li>
           <li><strong>Content-stripped by design.</strong> The export retains shapes, sizes, ids and timings. It retains no prompt text, no tool arguments, no outputs. This is a privacy posture, and it is the single biggest constraint on what can be asked. Several questions below die on it, and that is reported rather than worked around.</li>
@@ -464,7 +529,7 @@
       </ul>
       <p>The truth lies between. Both are carried everywhere; neither is collapsed into a headline.</p>
 
-      <h3>Result: looping is rare, shallow, and not a failure signature</h3>
+      <h3>Result in this corpus: looping is rare, shallow, and not a failure signature</h3>
       <div class="tbl-scroll">
         <table class="wide-tbl">
           <thead><tr><th>Measure</th><th class="num">Lower bound</th><th class="num">Upper bound</th></tr></thead>
@@ -494,9 +559,79 @@
       <p><strong>Does a stuck run predict a bad ending?</strong> Among 1,625 subagent runs: 0 of 24 runs containing a stuck run ended <code class="code">failed</code>/<code class="code">killed</code>, versus 25 of 1,601 without. <strong>No predictive signal &mdash; and with only 25 hard failures corpus-wide, this comparison is underpowered by construction and cannot rule out a real effect.</strong></p>
 
       <div class="finding negative">
-        <span class="tag">Finding (boring, and reported boring)</span>
-        <p>Agents in this corpus do not meaningfully loop. Between 1.2% and 2.1% of runs contain anything a human would call stuck, and the deepest example is legitimate pagination. If you are building loop-detection for this workload, you are building for a failure mode that occurs in roughly 1 run in 60 &mdash; and your detector's false-positive rate will likely exceed the phenomenon.</p>
+        <span class="tag">Finding &mdash; scope corrected 3 August 2026</span>
+        <p><strong>Frontier models do not meaningfully loop.</strong> In this corpus &mdash; which ran Anthropic frontier models throughout &mdash; between 1.2% and 2.1% of runs contain anything a human would call stuck, and the deepest example is legitimate pagination. If you are building loop-detection <em>for a frontier-model workload</em>, you are building for a failure mode that occurs in roughly 1 run in 60, and your detector's false-positive rate will likely exceed the phenomenon.</p>
+        <p style="margin-top:10px;"><strong>Stated about &ldquo;agents&rdquo;, this is false</strong> &mdash; and an earlier version of this page stated it that way.</p>
       </div>
+
+      <h3 id="q1-replication">What the replication did to this finding</h3>
+      <p class="n">Figures in this subsection are transcribed from <code class="code">docs/REPLICATION.md</code>: 94,059 tool calls, 3,895 headless OpenHands runs on SWE-bench Lite, 13 models, no operator.</p>
+
+      <p class="wide-p"><strong>Corpus-wide, the finding is contradicted.</strong> Blind identical retry is nine times higher, and stuck runs ten times more common:</p>
+
+      <div class="tbl-scroll">
+        <table class="wide-tbl">
+          <thead><tr><th>Measure</th><th class="num">This corpus</th><th class="num">Public corpus</th><th class="num">Test</th></tr></thead>
+          <tbody>
+            <tr><td>Calls inside a repeat run</td><td class="num">1.29% &ndash; 3.57%</td><td class="num emph">7.49% &ndash; 19.48%</td><td class="num">&mdash;</td></tr>
+            <tr><td>Runs with a stuck (&ge;5) run</td><td class="num">1.15% &ndash; 2.08%</td><td class="num emph">11.93% &ndash; 25.01%</td><td class="num">&mdash;</td></tr>
+            <tr class="hl"><td>Blind identical retry after an error</td><td class="num emph">1.76% <span class="n">(50/2,843)</span></td><td class="num emph">16.12% <span class="n">(4,657/28,886)</span></td><td class="num">z = 20.6, p = 6.5e&minus;94</td></tr>
+            <tr><td>Adaptive next action</td><td class="num">96.94%</td><td class="num">80.10%</td><td class="num">&mdash;</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="wide-p"><strong>But the 13 models do not agree with each other, and that is the whole result.</strong> Blind-retry rate spans <strong>0.7% to 31.9% inside one harness</strong> &mdash; a 45&times; range, wider than the gap between the two corpora.</p>
+
+      <div class="chart-card" id="chart-models-card">
+        <p class="chart-title">Blind retry after an error, by model &mdash; one harness, 13 models</p>
+        <p class="chart-sub">Share of tool errors followed by an identical retry. The dashed line is this study's 1.76%. The three frontier Claude runs sit on it; the rest of the field does not.</p>
+        <div class="chart-wrap">
+          <div class="chart-scroll"><svg id="chart-models" role="img" aria-label="Horizontal bar chart of blind retry rate by model in the public corpus. Claude 3.5 Sonnet v2.2 0.7 percent, Claude 3.5 Haiku 1.2 percent, Claude 3.5 Sonnet v2.1 1.8 percent, Claude 3.5 Sonnet 20240620 6.3 percent, Llama 3.2 90B 8.6 percent, Llama 3.1 70B 9.9 percent, o1-mini 10.8 percent, DeepSeek Chat 12.6 percent, GPT-4o 13.5 percent, GPT-4o mini 13.7 percent, Qwen 2.5 72B 20.1 percent, DeepSeek v2.5 28.1 percent, Llama 3.3 70B 31.9 percent. This study's corpus is 1.76 percent."></svg></div>
+          <div class="tt" id="tt-models"></div>
+        </div>
+        <div class="chart-legend" id="legend-models"></div>
+        <p class="chart-note">Transcribed from <code>docs/REPLICATION.md</code> &sect;5. Stuck-run rates track the same ordering: 0.3&ndash;3.3% on the frontier Claude runs against 41.1% on Llama 3.3 70B.</p>
+      </div>
+
+      <p class="wide-p">The frontier numbers are statistically indistinguishable from this corpus's 1.76% blind retry and 1.15&ndash;2.08% stuck runs &mdash; in a different harness, on a different workload, with no human present at any point. That is a direct answer to this study's own stated weakness: <strong>the low loop rate was measuring the model, not the operator.</strong></p>
+
+      <h3>And now there is ground truth, which this corpus never had</h3>
+      <p class="wide-p">Nothing in this study can say whether a run was <em>right</em>. SWE-bench scores 2,253 of the public runs against the repository's own tests, and the loop signal turns out to be expensive:</p>
+
+      <div class="tbl-scroll">
+        <table class="wide-tbl">
+          <thead><tr><th>Runs that&hellip;</th><th class="num">Resolved their bug</th><th class="num">Test</th></tr></thead>
+          <tbody>
+            <tr class="hl"><td>contain a stuck repeat run</td><td class="num emph">14.43% <span class="n">[11.63&ndash;17.76] (73/506)</span></td><td class="num">z = &minus;10.16, p = 2.9e&minus;24</td></tr>
+            <tr><td>contain no stuck repeat run</td><td class="num emph">38.58% <span class="n">[36.33&ndash;40.89] (674/1,747)</span></td><td class="num">&mdash;</td></tr>
+            <tr><td>were flagged looping by the harness</td><td class="num">6.87% <span class="n">[4.96&ndash;9.45] (34/495)</span></td><td class="num">z = &minus;14.06, p = 6.3e&minus;45</td></tr>
+            <tr><td>contain &ge;1 tool error</td><td class="num">32.19% <span class="n">[30.14&ndash;34.31] (618/1,920)</span></td><td class="num">z = &minus;2.34, p = 0.019</td></tr>
+            <tr><td>contain no tool error</td><td class="num">38.74% <span class="n">[33.66&ndash;44.07] (129/333)</span></td><td class="num">&mdash;</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="finding">
+        <span class="tag">The useful conclusion, which neither corpus gave on its own</span>
+        <p>A stuck repeat run cuts the chance of a correct answer by <strong>2.7&times;</strong> &mdash; 38.6% resolved to 14.4%. A tool error barely matters, consistent with this study's finding that error handling is not where runs die. So the advice is <em>conditional</em> rather than wrong: <strong>loop detection is genuinely not worth building for a frontier-model workload, and it is worth building for a mixed-model one</strong>, where the phenomenon is 1 run in 5 and each occurrence costs most of the run's chance of being right.</p>
+      </div>
+
+      <h3>How wide is the shape-collision bracket, really?</h3>
+      <p class="wide-p">This corpus cannot observe repeats directly &mdash; hence the bracket above. The public corpus keeps the real arguments, so the identical analysis was run twice: once over this study's lossy shape fingerprint, once over a hash of the actual arguments.</p>
+
+      <div class="tbl-scroll">
+        <table>
+          <thead><tr><th></th><th class="num">Calls inside a repeat run</th></tr></thead>
+          <tbody>
+            <tr><td>Shape lower bound <span class="n">(this study's method)</span></td><td class="num">7.49%</td></tr>
+            <tr class="hl"><td><strong>Exact arguments</strong> <span class="n">(ground truth)</span></td><td class="num emph">16.42%</td></tr>
+            <tr><td>Shape upper bound <span class="n">(this study's method)</span></td><td class="num">19.48%</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="wide-p">The truth lands <strong>74% of the way from the lower bound to the upper</strong>: the lower bound understates by 8.9pp, the upper overstates by 3.1pp. The bracket does contain the truth &mdash; but anyone reading <code class="code">1.29% &ndash; 3.57%</code> as &ldquo;probably around 1.3%&rdquo; is reading it wrong. <strong>Quote the upper bound as the working estimate, not the midpoint.</strong> <span class="n">(Caveat: collision rate depends on the argument-length distribution, and a corpus with three tools collides more than one with sixty-four. This calibrates the method, not this corpus's specific numbers.)</span></p>
     </section>
 
     <hr class="sep">
@@ -556,6 +691,7 @@
       <div class="finding negative">
         <span class="tag">Finding</span>
         <p><strong>Error handling is the strongest behaviour in this corpus.</strong> After a tool failure the agent adapts &mdash; different arguments or a different tool &mdash; in 96.9% of cases, and retries blindly in 1.76%. The &ldquo;dumb retry loop&rdquo; is essentially absent (50 occurrences in 85,104 calls).</p>
+        <p style="margin-top:10px;"><strong>Scope, the same correction as Q1.</strong> This is a property of the <em>models</em>, not of agents generally. Across 13 models running headless, adaptive response falls to 80.10% and blind retry rises to 16.12% &mdash; but the frontier Claude runs in that corpus retry blindly at 0.7&ndash;1.8%, matching this corpus. Read it as <em>frontier models handle errors well</em>, never as <em>agents do</em>.</p>
       </div>
 
       <h3>The money question: does it proceed on a failed result?</h3>
@@ -616,6 +752,12 @@
         <p>Elapsed time is the single best cheap predictor of tool failure available in this data. It needs no model, no content, no semantics &mdash; just a clock. A tool call that has been running 10 minutes is roughly 9x likelier to end in an error than a typical call.</p>
       </div>
 
+      <div class="finding caution">
+        <span class="tag">Untestable externally, and reported as untestable</span>
+        <p><em>Transcribed from <code class="code">docs/REPLICATION.md</code>.</em> The public benchmark harness caps command duration, so its &ge;60s tail is <strong>0.22% of calls against 3.71% here</strong> &mdash; 208 calls out of 94,059, with p99 at 7.5 seconds. The sign there is the same (40.87% vs 30.69%, a 1.33&times; enrichment, z = 3.18, p = 0.0015), but the effect dies under the shell-only sensitivity check, where every error is a real process exit code: <strong>1.05&times; (41.54% vs 39.58%, p = 0.58)</strong>. There is also a mechanism cutting against it there &mdash; a long command in that harness is often long <em>because</em> it is about to be killed by a timeout, which is itself recorded as a non-zero exit.</p>
+        <p style="margin-top:10px;"><strong>Neither confirmed nor refuted, and claimed as neither. This finding remains scoped to this corpus</strong> until somebody publishes production traces with an untruncated tail. Finding 1 is a claim about a tail that a benchmark harness does not permit to exist.</p>
+      </div>
+
       <p class="wide-p">Also worth naming: <strong>4.3% of &ge;60s calls are the agent waiting on a human</strong> (<code class="code">AskUserQuestion</code>, <code class="code">ExitPlanMode</code> &mdash; 147 calls). Any latency budget that counts these as agent slowness is measuring the operator's response time and calling it a model problem.</p>
 
       <div class="chart-card" id="chart-stack-card">
@@ -637,7 +779,13 @@
     <section id="q4" aria-labelledby="q4-h">
       <span class="q-tag">Q4</span>
       <h2 id="q4-h">Do failures cluster near context limits or compaction?</h2>
-      <p class="wide-p">The folk claim is that agents degrade as context fills. This corpus can test it: every tool call joins back to the model call that issued it, which reports exactly how many input tokens the model was holding (25,199 of 85,104 calls join successfully &mdash; corrected 2026-08-03; see docs/REPLICATION.md).</p>
+      <p class="wide-p">The folk claim is that agents degrade as context fills. This corpus can test it: a tool call joins back to the model call that issued it, which reports exactly how many input tokens the model was holding.</p>
+
+      <div class="finding caution">
+        <span class="tag">Correction, 3 August 2026</span>
+        <p>An earlier version of this section claimed that <strong>81,979</strong> of 85,104 calls join to a context size. That figure was wrong and was never what the code computed: <strong>25,199 calls (29.6%) join</strong>, and the other 59,905 carry an <code class="code">api_uuid</code> that appears nowhere in the export as an <code class="code">api_call</code>. The joinable subset is also <strong>not random</strong> &mdash; 22.5% of <code class="code">Bash</code> calls join against 47.7% of <code class="code">Read</code>, and joined calls carry a <em>lower</em> error rate (2.79%) than unjoined ones (3.57%). Everything below is computed on that 30% subset. The direction of the result is unaffected; the claim that this was the study's best-powered finding is withdrawn.</p>
+      </div>
+
       <p><strong>Error rate does not rise with context size. It falls slightly.</strong></p>
 
       <div class="chart-card" id="chart-context-card">
@@ -665,11 +813,20 @@
       <p><strong>The effect does not survive stratification in the two largest tools.</strong> One of three tools shows a weak negative trend at p = 0.019, uncorrected for three comparisons.</p>
 
       <div class="finding negative">
-        <span class="tag">Finding (negative, and the most solidly-powered claim in this study)</span>
+        <span class="tag">Finding (negative) &mdash; the study's strongest result, because it replicated</span>
         <p>There is no evidence that tool-call failures increase with context pressure in this corpus, across 25,199 joined calls spanning 0 to 300k+ tokens. Any weak trend present runs in the <em>opposite</em> direction to the folk claim and does not survive controlling for tool mix.</p>
+        <p style="margin-top:10px;"><strong>And it replicates externally, far more strongly:</strong> <strong>z = &minus;10.80, p = 3.4e&minus;27 across 47,545 joined calls</strong> from 13 models in a different harness with no operator present, against z = &minus;2.33 here &mdash; roughly five times the test statistic, in a corpus sharing nothing with this one but the analysis code. <strong>This finding carries no caveat about operator, harness or model family any more.</strong></p>
       </div>
 
-      <p class="wide-p"><strong>Compaction is unanswerable here for lack of data.</strong> Only <strong>38 compaction events</strong> exist corpus-wide (33 manual, 5 automatic) across 26 streams. Error rate in the 10 minutes after a compaction: 3.87% (27/698) versus a 3.34% baseline &mdash; <strong>p = 0.44, indistinguishable</strong>. With 38 events this comparison can rule out a large effect and nothing smaller. <strong>Reported as underpowered, not as null.</strong></p>
+      <h3>What the replication found here</h3>
+      <p class="n">Transcribed from <code class="code">docs/REPLICATION.md</code>.</p>
+      <p class="wide-p"><strong>The folk claim fails in both corpora.</strong> In neither does error rate climb as the context window fills. The public corpus runs 30.7% &rarr; 29.5% &rarr; 25.5% &rarr; 22.2% &rarr; 22.5% &rarr; 24.4% &rarr; 19.6% across its 25k bins. Two honest complications the public data can see and this corpus cannot:</p>
+
+      <p class="wide-p"><strong>Stratification splits the effect rather than simply surviving it.</strong> Inside single tools there, <code class="code">run_ipython</code> (n = 28,528) gives z = &minus;15.97, while <code class="code">run</code> &mdash; the shell (n = 19,017) &mdash; gives <strong>z = +3.42, p = 0.00063</strong>: the one curve that rises. But that curve is not monotone (32.1% &rarr; 37.0% &rarr; 38.2% &rarr; 32.3% &rarr; 30.0%). It humps at 50&ndash;75k and then falls, and a linear trend test is a poor summary of a hump.</p>
+
+      <p class="wide-p"><strong>Both corpora hump in the same place.</strong> This one climbs 1.6% &rarr; 2.5% &rarr; 3.6% over its first three bins before flattening &mdash; errors rising over roughly the first 50&ndash;75k of context, then falling. That shared shape is more interesting than either corpus's overall sign, and <strong>neither study is powered to say whether it is real degradation or a shift in what the agent is doing at that stage.</strong> It is named here as an open question, not as a result.</p>
+
+      <p class="wide-p"><strong>Compaction is unanswerable here for lack of data.</strong> Only <strong>38 compaction events</strong> exist corpus-wide (33 manual, 5 automatic) across 26 streams. Error rate in the 10 minutes after a compaction: 3.87% (27/698) versus a 3.34% baseline &mdash; <strong>p = 0.44, indistinguishable</strong>. With 38 events this comparison can rule out a large effect and nothing smaller. <strong>Reported as underpowered, not as null.</strong> The replication cannot help: the public corpus has <em>no</em> compaction events at all &mdash; OpenHands does not compact, it errors out (12 runs died on a <code class="code">ContextWindowExceededError</code>).</p>
     </section>
 
     <hr class="sep">
@@ -741,14 +898,49 @@
 
     <hr class="sep">
 
+    <section id="nearmiss" aria-labelledby="nearmiss-h">
+      <h2 id="nearmiss-h">The near-miss, published on purpose</h2>
+      <p class="q-prompt">The replication agent caught a bug in its own work that had already produced a full set of plausible, wrong headline numbers.</p>
+
+      <p class="wide-p">Eight of the thirteen public runs store their history as <code class="code">[action, observation]</code> pairs rather than as a flat list. <strong>The first version of the loading adapter silently skipped all eight.</strong></p>
+
+      <div class="finding caution">
+        <span class="tag">What that means concretely</span>
+        <p><strong>2,398 of 3,895 runs registered zero tool calls</strong>, and every headline number in the replication was quietly computed from the five newest runs. <strong>It raised no error. Nothing crashed, nothing warned, and the output looked entirely plausible</strong> &mdash; a clean corpus, sensible rates, tables that would have survived a skim. It was caught only by noticing that <code class="code">streams_with_tool_calls</code> was 1,497 when the corpus contained 3,895 streams.</p>
+      </div>
+
+      <p class="wide-p">This is reported prominently rather than buried in a methods note for two reasons. First, it is <strong>precisely the bug class this whole project exists to find</strong> &mdash; a silent, plausible, wrong number produced by an agent that had no way to know it was wrong &mdash; and it was found inside this project's own analysis, by the analysis's own author. Second, the general point survives the fix: <strong>an adapter fails quietly, and every figure quoted from the replication depends on one.</strong> A regression test pins the pair-format path now. That is a guard, not a proof.</p>
+
+      <p class="wide-p n">The honest reading of this page's provenance is therefore: figures about the original corpus are regenerated on every run and drift-checked; figures about the public corpus are transcribed from <code class="code">docs/REPLICATION.md</code>, which itself rests on one loading layer that has already been wrong once.</p>
+    </section>
+
+    <hr class="sep">
+
+    <section id="gap" aria-labelledby="gap-h">
+      <h2 id="gap-h">The gap that is itself a finding</h2>
+
+      <p class="wide-p">Three independent surveys checked every public candidate that publishes anything, verifying at source rather than from memory. <strong>Agent benchmarks publish scores, and essentially only scores.</strong> Of everything checked, exactly one corpus carried all four fields these questions need &mdash; per-call wall-clock timing, tool identity, a success/failure signal, and per-call context tokens &mdash; and it is benchmark output. Terminal-Bench 2.0 publishes ~121 GB of real submissions and was rejected because its steps carry no error signal of any kind. HAL's traces ship encrypted. The large trajectory datasets are text blobs.</p>
+
+      <div class="finding">
+        <span class="tag">Stated as a result, not as a lament</span>
+        <p><strong>There is no public corpus of real production agent sessions at all.</strong> Every usable public dataset is short, step-capped benchmark output with no human in the loop. So <code class="code">n = 1 operator</code> is answered &mdash; and <strong><code class="code">n = 1 production corpus</code> is what remains, and cannot currently be closed by anybody, using any public data.</strong> The reason a study like this one is rare is that the raw material does not exist publicly.</p>
+      </div>
+
+      <p class="wide-p"><strong>What would close it is small.</strong> An export of production agent sessions from a second operator or organisation, carrying, per tool call: a start and end timestamp, the tool name, a success/failure flag, and the issuing model call's input-token count. <strong>Four fields.</strong> This study's own export format is one such schema and is already content-stripped for privacy. Nothing in the public landscape provides it today.</p>
+    </section>
+
+    <hr class="sep">
+
     <section id="worth" aria-labelledby="worth-h">
       <h2 id="worth-h">What this study is worth</h2>
 
-      <h3>The three findings I'd stand behind</h3>
+      <h3>The three findings I'd stand behind, ordered by how well they survived somebody else's data</h3>
       <ol class="plain" style="padding-left:22px;">
-        <li><strong>Elapsed time predicts tool failure, strongly and cheaply.</strong> 10.21% vs 3.07% error rate above and below 60 seconds (n = 3,153 / 81,913, p &asymp; 1e&minus;106), sharpening to 27.8% past ten minutes. Actionable without any model in the loop.</li>
-        <li><strong>No context-pressure effect.</strong> Across 25,199 joined calls spanning 0&ndash;300k+ tokens, failures do not rise with context, and the weak trend that exists points the other way and dies under stratification. This contradicts a widely-repeated claim.</li>
-        <li><strong>Looping barely exists, and error handling is excellent.</strong> 1.15&ndash;2.08% of runs contain a stuck repeat; blind identical retry follows 1.76% of errors; adaptive response follows 96.9%.</li>
+        <li><strong>No context-pressure effect &mdash; the strongest result here.</strong> Across 25,199 joined calls spanning 0&ndash;300k+ tokens, failures do not rise with context, and the weak trend that exists points the other way and dies under stratification. This contradicts a widely-repeated claim. <strong>Replicated externally on 47,545 calls from 13 models in another harness with no operator present, at z = &minus;10.80 against &minus;2.33 here.</strong> It carries no caveat about operator, harness or model family any more. Its strength is the replication; its own denominator is a biased 30% subset.</li>
+        <li><strong>Frontier models barely loop, and handle errors excellently</strong> &mdash; a claim about <em>models</em>, not about <em>agents</em>. 1.15&ndash;2.08% of runs contain a stuck repeat; blind identical retry follows 1.76% of errors; adaptive response follows 96.9%.
+          <p style="margin:8px 0 0;"><strong>Scope corrected by the replication, and this is the correction that matters.</strong> Stated as a claim about agents it is false: across 3,895 headless runs by 13 models, blind retry is 16.12% (z = 20.6, p = 6.5e&minus;94) and stuck runs 11.93&ndash;25.01%. But blind retry spans 0.7% to 31.9% across models inside that one harness, and the frontier Claude runs land at 1.8%, 1.2% and 0.7% with stuck runs at 0.3&ndash;3.3% &mdash; indistinguishable from the figures here, with no human present. <strong>The low loop rate was measuring the model, not the operator.</strong> Ground truth makes the advice conditional rather than wrong: a stuck repeat cuts SWE-bench resolution from 38.6% to 14.4% (p = 2.9e&minus;24), so loop detection is not worth building for a frontier-model workload and <em>is</em> worth building for a mixed-model one.</p>
+        </li>
+        <li><strong>Elapsed time predicts tool failure, strongly and cheaply.</strong> 10.21% vs 3.07% error rate above and below 60 seconds (n = 3,153 / 81,913, p &asymp; 1e&minus;106), sharpening to 27.8% past ten minutes. Actionable without any model in the loop. <strong>Neither confirmed nor refuted externally, and claimed as neither</strong> &mdash; the benchmark harness caps command duration, so its tail is 0.22% of calls against 3.71% here, and the effect dies under a shell-only sensitivity check (1.05&times;, p = 0.58). Still scoped to this corpus.</li>
       </ol>
 
       <h3>What the data could not answer</h3>
@@ -756,8 +948,10 @@
 
       <h3>Where this is weakest, in the order a skeptic will find it</h3>
       <ul class="plain">
-        <li><strong>n = 1 operator.</strong> The most likely explanation for &ldquo;agents rarely loop and handle errors well&rdquo; is that this particular operator's harness, models and prompting are good, and/or that he intervenes early on sessions going wrong &mdash; intervention that is invisible in the trace. The low loop rate may partly measure <em>him</em>, not the agents.</li>
-        <li><strong>Shape-level repeat detection</strong> carries a 2.8x spread between its bounds. That spread is the honest width of the uncertainty, and it is wide.</li>
+        <li><strong><s>n = 1 operator.</s> Tested externally and answered.</strong> The suspicion was that the low loop rate measured this operator rather than the agents &mdash; his prompting, or his invisible early intervention on sessions going wrong. It does not: the same models reproduce it in a headless harness on a different workload with no human in the loop at all.</li>
+        <li><strong><code class="code">n = 1 production corpus</code>, and that gap is itself a finding.</strong> Every public dataset is short, step-capped benchmark output; there is no public corpus of real production agent sessions at all. Nothing external speaks to open-ended, multi-day, human-directed sessions. <a href="#gap">Closing that needs a second operator's telemetry, not more benchmarks.</a></li>
+        <li><strong>Every number depends on a loading layer that can fail silently</strong>, and one such failure was caught during the replication &mdash; <a href="#nearmiss">2,398 of 3,895 runs silently dropped</a>, with no error raised and a plausible set of headline numbers produced from the remainder.</li>
+        <li><strong>Shape-level repeat detection</strong> carries a 2.8x spread between its bounds. That spread is the honest width of the uncertainty, and it is wide. The replication calibrates it for the first time against real arguments: truth sat <strong>74% of the way from the lower bound to the upper</strong>, so <strong>the upper bound is the better working estimate</strong>, not the midpoint.</li>
         <li><strong>The 6.27% unresolved-error figure</strong> is a proxy with defensible objections in both directions.</li>
         <li><strong><code class="code">completed</code> != correct</strong>, everywhere, with no way to close the gap from this data.</li>
         <li><strong>Multiple comparisons</strong> are uncorrected throughout; the two results at p &asymp; 0.02 should be read as suggestive, not established.</li>
@@ -769,9 +963,14 @@
 
 <footer>
   <div class="wrap">
-    <p>Generated from <code>results/study.json</code>. Every figure on this page is reproduced by the command below; nothing is transcribed by hand.</p>
+    <p>Generated from <code>results/study.json</code>. Every figure on this page <strong>about the original corpus</strong> is reproduced by the first command below; none of it is transcribed by hand.</p>
     <div class="repro"><code>python -m agentfail report --trace &lt;export&gt; --json results/study.json
 python -m agentfail report --check results/study.json</code></div>
+    <p style="margin-top:18px;">Every figure on this page <strong>about the public replication corpus</strong> &mdash; the 94,059-call OpenHands SWE-bench corpus, the 13-model table, the ground-truth resolution rates and the bracket calibration &mdash; is <strong>transcribed verbatim from <code>docs/REPLICATION.md</code></strong> and is not re-derived on this page. That document is produced by the unmodified analyses in <code>src/agentfail/analyses/</code> over a new loading layer:</p>
+    <div class="repro"><code>python -m agentfail adapt --adapter openhands --out &lt;export&gt; &lt;output.jsonl files&gt;
+python -m agentfail report --trace &lt;export&gt; --json &lt;result.json&gt;
+python scripts/replicate.py --public &lt;result.json&gt; ...</code></div>
+    <p style="margin-top:18px;">Corrections on this page are dated and the superseded claim is stated, never deleted. Last correction: 3 August 2026 &mdash; looping scope, and the Q4 join count.</p>
   </div>
 </footer>
 
@@ -1019,6 +1218,105 @@ python -m agentfail report --check results/study.json</code></div>
     });
   }
 
+  /* ---------- Chart 2b: blind retry by model (public corpus) ----------
+     All values transcribed from docs/REPLICATION.md section 5. */
+  var modelRows = [
+    {label:'claude-3-5-sonnet (v2.2)', pct:0.7,  calls:7531,  stuck:'0.0 – 2.7',  frontier:true},
+    {label:'claude-3-5-haiku (v2.1)',  pct:1.2,  calls:9334,  stuck:'0.3 – 1.0',  frontier:true},
+    {label:'claude-3-5-sonnet (v2.1)', pct:1.8,  calls:7997,  stuck:'0.3 – 3.3',  frontier:true},
+    {label:'claude-3-5-sonnet (06-20)', pct:6.3, calls:6612, stuck:'0.0 – 30.7'},
+    {label:'llama-3.2-90b',            pct:8.6,  calls:5307,  stuck:'5.7 – 26.9'},
+    {label:'llama-3.1-70b',            pct:9.9,  calls:5159,  stuck:'3.3 – 11.3'},
+    {label:'o1-mini',                  pct:10.8, calls:4504,  stuck:'2.0 – 14.2'},
+    {label:'deepseek-chat (v2.2)',     pct:12.6, calls:8459,  stuck:'27.7 – 30.7'},
+    {label:'gpt-4o',                   pct:13.5, calls:7109,  stuck:'11.7 – 36.3'},
+    {label:'gpt-4o-mini',              pct:13.7, calls:6654,  stuck:'13.0 – 27.0'},
+    {label:'qwen-2.5-72b',             pct:20.1, calls:5632,  stuck:'21.7 – 43.7'},
+    {label:'deepseek-v2.5',            pct:28.1, calls:5537,  stuck:'28.0 – 56.0'},
+    {label:'llama-3.3-70b',            pct:31.9, calls:14224, stuck:'41.1 – 41.1'}
+  ];
+  function renderModels(){
+    var svg = document.getElementById('chart-models');
+    if(!svg) return;
+    svg.innerHTML = '';
+    var rowH = 18, rowGap = 8;
+    var padL = 148, padR = 48, padT = 22, padB = 8;
+    var barMaxW = 220;
+    var W = padL + barMaxW + padR;
+    var H = padT + modelRows.length*(rowH+rowGap) - rowGap + padB;
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+    svg.setAttribute('width', '100%');
+    svg.setAttribute('height', H);
+    svg.style.minWidth = '408px';
+
+    var maxV = 35;
+    var ink = cssVar('--ink'), accent = cssVar('--accent'), serious = cssVar('--serious');
+    var hairStrong = cssVar('--hair-strong');
+    var tt = document.getElementById('tt-models');
+    var wrap = svg.closest('.chart-wrap');
+
+    var plotBottom = padT + modelRows.length*(rowH+rowGap) - rowGap;
+
+    // reference line: this study's 1.76%
+    var refX = padL + (1.76/maxV)*barMaxW;
+    var refLine = el('line', {x1:refX, x2:refX, y1:padT-8, y2:plotBottom, stroke:hairStrong, 'stroke-width':'1.5', 'stroke-dasharray':'3,3'});
+    svg.appendChild(refLine);
+    var refLbl = el('text', {x:refX+5, y:padT-12, 'font-size':'10.5', 'font-style':'italic'});
+    refLbl.setAttribute('class','svg-axis-label');
+    refLbl.textContent = 'this study: 1.76%';
+    svg.appendChild(refLbl);
+
+    modelRows.forEach(function(row, ri){
+      var y = padT + ri*(rowH+rowGap);
+      var lt = el('text', {x: padL-9, y: y+rowH/2+4, 'text-anchor':'end', 'font-size':'10'});
+      lt.setAttribute('fill', ink);
+      if(row.frontier) lt.setAttribute('font-weight','700');
+      lt.textContent = row.label;
+      svg.appendChild(lt);
+
+      var w = Math.max((row.pct/maxV)*barMaxW, 2);
+      var rect = el('rect', {
+        x: padL, y: y, width: w, height: rowH, rx: 3,
+        fill: row.frontier ? accent : serious
+      });
+      rect.style.cursor = 'pointer';
+      svg.appendChild(rect);
+
+      var vt = el('text', {x: padL + w + 7, y: y+rowH/2+4, 'font-size':'11', 'font-weight':'700'});
+      vt.setAttribute('fill', ink);
+      vt.textContent = row.pct.toFixed(1) + '%';
+      svg.appendChild(vt);
+
+      var hit = el('rect', {x:padL, y:y, width:barMaxW, height:rowH, fill:'transparent'});
+      hit.style.cursor = 'pointer';
+      hit.addEventListener('mousemove', function(ev){
+        var r = wrap.getBoundingClientRect();
+        showTip(tt, ev.clientX - r.left, ev.clientY - r.top,
+          '<strong>' + row.label + '</strong><br>' + row.pct.toFixed(1) + '% blind retry<br>stuck runs ' + row.stuck + '%<br>' + row.calls.toLocaleString() + ' tool calls');
+      });
+      hit.addEventListener('mouseleave', function(){ hideTip(tt); });
+      svg.appendChild(hit);
+    });
+
+    var legend = document.getElementById('legend-models');
+    if(legend){
+      legend.innerHTML = '';
+      [{label:'Frontier Claude runs', color: accent},
+       {label:'Other models in the same harness', color: serious}].forEach(function(k){
+        var item = document.createElement('div');
+        item.className = 'item';
+        var sw = document.createElement('span');
+        sw.className = 'swatch';
+        sw.style.background = k.color;
+        item.appendChild(sw);
+        var txt = document.createElement('span');
+        txt.textContent = k.label;
+        item.appendChild(txt);
+        legend.appendChild(item);
+      });
+    }
+  }
+
   /* ---------- Chart 3: context bins (line) ---------- */
   var contextBins = [
     {label:'0–25k', pct:1.551, n:709, err:11},
@@ -1109,6 +1407,7 @@ python -m agentfail report --check results/study.json</code></div>
 
   function renderAll(){
     renderLadder();
+    renderModels();
     renderStack();
     renderContext();
   }
