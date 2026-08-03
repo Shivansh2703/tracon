@@ -7,6 +7,11 @@ Every number in ``docs/FINDINGS.md`` and ``site/index.html`` comes out of
 and nothing is transcribed by hand from anywhere else. ``--json`` writes the
 full result object; ``--check`` re-runs the study and diffs it against a stored
 result so a drifted figure fails loudly instead of quietly.
+
+    python -m agentfail adapt --adapter openhands --out <dir> <files...>
+
+converts a public agent-trajectory corpus into the same export format, so that
+``report`` runs the *identical* analyses over it. See ``agentfail.adapters``.
 """
 
 from __future__ import annotations
@@ -38,6 +43,27 @@ def run(trace: str | Path, only: list[str] | None = None) -> dict:
     if unknown:
         raise SystemExit(f"unknown analysis: {', '.join(unknown)} (have: {', '.join(ANALYSES)})")
     return {name: ANALYSES[name](corpus) for name in names}
+
+
+def adapt(
+    adapter: str, inputs: list[str], out: Path, shape_mode: str,
+    limit: int | None, only_actions: list[str] | None = None,
+) -> Path:
+    """Convert a foreign corpus into an export directory the loader accepts."""
+    from importlib import import_module
+
+    from .adapters import REGISTRY, ShapeMode
+
+    if adapter not in REGISTRY:
+        raise SystemExit(f"unknown adapter: {adapter} (have: {', '.join(REGISTRY)})")
+    module = import_module(REGISTRY[adapter])
+    return module.convert(
+        [Path(p) for p in inputs],
+        out,
+        shape_mode=ShapeMode(shape_mode),
+        limit_per_file=limit,
+        only_actions=set(only_actions) if only_actions else None,
+    )
 
 
 def _headlines(result: dict) -> list[str]:
@@ -87,12 +113,42 @@ def _headlines(result: dict) -> list[str]:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="agentfail", description="Failure-mode analysis of real agent traces")
-    parser.add_argument("command", choices=["report"], help="what to run")
+    parser.add_argument("command", choices=["report", "adapt"], help="what to run")
+    parser.add_argument("inputs", nargs="*", help="adapt: source files to convert")
+    parser.add_argument("--adapter", help="adapt: which public corpus format the inputs are in")
+    parser.add_argument("--out", type=Path, help="adapt: export directory to write")
+    parser.add_argument(
+        "--shape-mode",
+        default="shape",
+        choices=["shape", "exact"],
+        help="adapt: 'shape' reproduces the study's lossy argument fingerprint; "
+        "'exact' uses the real arguments, which the study's own corpus cannot",
+    )
+    parser.add_argument("--limit-per-file", type=int, help="adapt: stop after N records per input file")
+    # Deliberately comma-separated rather than nargs="*": a greedy list flag
+    # swallows the trailing positional input files, and the adapter then runs
+    # on nothing.
+    parser.add_argument(
+        "--only-actions",
+        help="adapt: comma-separated source actions to keep — used for sensitivity "
+        "checks, e.g. --only-actions run keeps the calls whose failure is a real exit code",
+    )
     parser.add_argument("--trace", default=DEFAULT_TRACE, help="tracon export directory")
     parser.add_argument("--only", nargs="*", help=f"subset of analyses: {', '.join(ANALYSES)}")
     parser.add_argument("--json", type=Path, help="write the full result object here")
     parser.add_argument("--check", type=Path, help="compare against a stored result and fail on drift")
     args = parser.parse_args(argv)
+
+    if args.command == "adapt":
+        if not args.adapter or not args.out or not args.inputs:
+            raise SystemExit("adapt needs --adapter, --out and at least one input file")
+        out = adapt(
+            args.adapter, args.inputs, args.out, args.shape_mode,
+            args.limit_per_file,
+            [a for a in (args.only_actions or "").split(",") if a] or None,
+        )
+        print(f"wrote {out}")
+        return 0
 
     result = run(args.trace, args.only)
 

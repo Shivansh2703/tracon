@@ -100,8 +100,11 @@ class ExportWriter:
     counters: dict[str, int] = field(default_factory=dict)
     notes: dict[str, Any] = field(default_factory=dict)
 
-    def _bump(self, key: str) -> None:
+    def bump(self, key: str) -> None:
+        """Count something worth auditing later; lands in the manifest."""
         self.counters[key] = self.counters.get(key, 0) + 1
+
+    _bump = bump  # internal alias used by this module's own hot paths
 
     def fingerprint(self, args: object) -> str:
         return shape(args) if self.shape_mode is ShapeMode.SHAPE else exact_signature(args)
