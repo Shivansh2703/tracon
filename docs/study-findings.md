@@ -235,7 +235,15 @@ hung process nobody's watchdog caught. **25 calls (0.029%) never returned at all
 
 The folk claim is that agents degrade as context fills. This corpus can test it: every tool call
 joins back to the model call that issued it, which reports exactly how many input tokens the
-model was holding (81,979 of 85,104 calls join successfully).
+model was holding.
+
+**Correction (2026-08-03, from the external replication).** An earlier draft of this
+section claimed 81,979 of 85,104 calls join successfully. That figure is wrong and was
+never what the code computed: **25,199 calls (29.6%) join**, and the other 59,905 carry
+an `api_uuid` that appears nowhere in the export as an `api_call`. Worse, the joinable
+subset is not random — 22.5% of `Bash` calls join versus 47.7% of `Read`, and joined
+calls carry a lower error rate (2.79%) than unjoined ones (3.57%). Everything below is
+computed on that 30% subset. See `docs/REPLICATION.md`.
 
 **Error rate does not rise with context size. It falls slightly.**
 
@@ -255,9 +263,15 @@ rates. Stratifying inside single tools:
 a weak negative trend at p = 0.019, uncorrected for three comparisons.
 
 > **Finding (negative, and the most solidly-powered claim in this study): there is no evidence
-> that tool-call failures increase with context pressure in this corpus, across 81,979 joined
+> that tool-call failures increase with context pressure in this corpus, across 25,199 joined
 > calls spanning 0 to 300k+ tokens. Any weak trend present runs in the *opposite* direction to
 > the folk claim and does not survive controlling for tool mix.**
+>
+> **This finding replicates externally** — z = -10.80 across 47,545 joined calls from 13 models
+> in a different harness (`docs/REPLICATION.md`). It is the one finding here that no longer
+> needs a single-operator caveat. It is *not*, however, this study's best-powered claim: that
+> description belonged to the retracted 81,979 figure, and the honest denominator is 25,199
+> from a subset that under-represents `Bash` and under-represents errors.
 
 **Compaction is unanswerable here for lack of data.** Only **38 compaction events** exist
 corpus-wide (33 manual, 5 automatic) across 26 streams. Error rate in the 10 minutes after a
@@ -338,12 +352,24 @@ Restricted to runs whose outcome was actually recorded:
 
 1. **Elapsed time predicts tool failure, strongly and cheaply.** 10.21% vs 3.07% error rate above
    and below 60 seconds (n = 3,153 / 81,913, p ~ 1e-106), sharpening to 27.8% past ten minutes.
-   Actionable without any model in the loop.
-2. **No context-pressure effect.** Across 81,979 calls spanning 0-300k+ tokens, failures do not
-   rise with context, and the weak trend that exists points the other way and dies under
-   stratification. This contradicts a widely-repeated claim.
-3. **Looping barely exists, and error handling is excellent.** 1.15-2.08% of runs contain a stuck
-   repeat; blind identical retry follows 1.76% of errors; adaptive response follows 96.9%.
+   Actionable without any model in the loop. **Still scoped to this corpus:** no public dataset
+   has an untruncated tail to test it against, so it could be neither confirmed nor refuted
+   (`docs/REPLICATION.md`).
+2. **No context-pressure effect.** Across 25,199 joined calls spanning 0-300k+ tokens, failures
+   do not rise with context, and the weak trend that exists points the other way and dies under
+   stratification. This contradicts a widely-repeated claim. **Replicated externally** on 47,545
+   calls from 13 models in another harness, far more strongly (z = -10.80).
+3. **Looping barely exists, and error handling is excellent** - *for these models*. 1.15-2.08%
+   of runs contain a stuck repeat; blind identical retry follows 1.76% of errors; adaptive
+   response follows 96.9%.
+
+   **Scope corrected by the replication.** Stated as a claim about agents, this is false: across
+   3,895 headless runs by 13 models, blind retry is 16.1% and stuck runs are 11.9-25.0%. But the
+   frontier Claude models in that corpus land at 0.7-1.8% blind retry and 0.3-3.3% stuck runs -
+   indistinguishable from the figures here, in a different harness with no operator present.
+   **The low loop rate was measuring the model, not the operator.** Weaker models loop up to 45x
+   more, and a stuck run costs them most of their chance of a correct answer (14.4% resolved vs
+   38.6%). See `docs/REPLICATION.md`.
 
 **What the data could not answer:** premature confidence (content stripped, no ground truth);
 whether an agent proceeded on a failed result *in substance* rather than in structure; anything
@@ -352,12 +378,16 @@ this document.
 
 **Where this is weakest**, in the order a skeptic will find it:
 
-- **n = 1 operator.** The most likely explanation for "agents rarely loop and handle errors well"
-  is that this particular operator's harness, models and prompting are good, and/or that he
-  intervenes early on sessions going wrong - intervention that is invisible in the trace. The
-  low loop rate may partly measure *him*, not the agents.
+- **~~n = 1 operator.~~ Tested externally and largely answered - see `docs/REPLICATION.md`.**
+  The suspicion was that the low loop rate measured this operator rather than the agents. It
+  does not: the same models reproduce it in a headless harness on a different workload with no
+  human in the loop. What remains is **n = 1 production corpus** - every public dataset is
+  benchmark output, short and step-capped, so nothing external speaks to open-ended multi-day
+  sessions. Closing that needs a second operator's telemetry, not more benchmarks.
 - **Shape-level repeat detection** carries a 2.8x spread between its bounds. That spread is the
-  honest width of the uncertainty, and it is wide.
+  honest width of the uncertainty, and it is wide. The replication calibrates it for the first
+  time against real arguments: on that corpus the truth sat 74% of the way from the lower bound
+  to the upper, so **the upper bound is the better working estimate**, not the midpoint.
 - **The 6.27% unresolved-error figure** is a proxy with defensible objections in both directions.
 - **`completed` != correct**, everywhere, with no way to close the gap from this data.
 - **Multiple comparisons** are uncorrected throughout; the two results at p ~ 0.02 should be read

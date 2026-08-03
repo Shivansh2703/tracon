@@ -637,7 +637,7 @@
     <section id="q4" aria-labelledby="q4-h">
       <span class="q-tag">Q4</span>
       <h2 id="q4-h">Do failures cluster near context limits or compaction?</h2>
-      <p class="wide-p">The folk claim is that agents degrade as context fills. This corpus can test it: every tool call joins back to the model call that issued it, which reports exactly how many input tokens the model was holding (81,979 of 85,104 calls join successfully).</p>
+      <p class="wide-p">The folk claim is that agents degrade as context fills. This corpus can test it: every tool call joins back to the model call that issued it, which reports exactly how many input tokens the model was holding (25,199 of 85,104 calls join successfully &mdash; corrected 2026-08-03; see docs/REPLICATION.md).</p>
       <p><strong>Error rate does not rise with context size. It falls slightly.</strong></p>
 
       <div class="chart-card" id="chart-context-card">
@@ -666,7 +666,7 @@
 
       <div class="finding negative">
         <span class="tag">Finding (negative, and the most solidly-powered claim in this study)</span>
-        <p>There is no evidence that tool-call failures increase with context pressure in this corpus, across 81,979 joined calls spanning 0 to 300k+ tokens. Any weak trend present runs in the <em>opposite</em> direction to the folk claim and does not survive controlling for tool mix.</p>
+        <p>There is no evidence that tool-call failures increase with context pressure in this corpus, across 25,199 joined calls spanning 0 to 300k+ tokens. Any weak trend present runs in the <em>opposite</em> direction to the folk claim and does not survive controlling for tool mix.</p>
       </div>
 
       <p class="wide-p"><strong>Compaction is unanswerable here for lack of data.</strong> Only <strong>38 compaction events</strong> exist corpus-wide (33 manual, 5 automatic) across 26 streams. Error rate in the 10 minutes after a compaction: 3.87% (27/698) versus a 3.34% baseline &mdash; <strong>p = 0.44, indistinguishable</strong>. With 38 events this comparison can rule out a large effect and nothing smaller. <strong>Reported as underpowered, not as null.</strong></p>
@@ -747,7 +747,7 @@
       <h3>The three findings I'd stand behind</h3>
       <ol class="plain" style="padding-left:22px;">
         <li><strong>Elapsed time predicts tool failure, strongly and cheaply.</strong> 10.21% vs 3.07% error rate above and below 60 seconds (n = 3,153 / 81,913, p &asymp; 1e&minus;106), sharpening to 27.8% past ten minutes. Actionable without any model in the loop.</li>
-        <li><strong>No context-pressure effect.</strong> Across 81,979 calls spanning 0&ndash;300k+ tokens, failures do not rise with context, and the weak trend that exists points the other way and dies under stratification. This contradicts a widely-repeated claim.</li>
+        <li><strong>No context-pressure effect.</strong> Across 25,199 joined calls spanning 0&ndash;300k+ tokens, failures do not rise with context, and the weak trend that exists points the other way and dies under stratification. This contradicts a widely-repeated claim.</li>
         <li><strong>Looping barely exists, and error handling is excellent.</strong> 1.15&ndash;2.08% of runs contain a stuck repeat; blind identical retry follows 1.76% of errors; adaptive response follows 96.9%.</li>
       </ol>
 

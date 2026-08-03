@@ -3,7 +3,9 @@
 Empirical failure-mode analysis of real production agent sessions.
 
 **[docs/FINDINGS.md](docs/FINDINGS.md)** is the study. **[site/index.html](site/index.html)** is the
-same study as a self-contained page.
+same study as a self-contained page. **[docs/REPLICATION.md](docs/REPLICATION.md)** re-runs the same
+analyses over 94,059 tool calls from 13 models in a different harness, and reports which findings
+survived.
 
 ## What this is
 
@@ -16,6 +18,23 @@ It asks the failure questions: does the agent loop, how does it handle a failed 
 actually in the long tail of slow calls, do failures cluster near context limits, and does a run
 that goes wrong recover. Two of the six questions come back negative, one comes back unanswerable,
 and all three are reported that way.
+
+## Replication on public data
+
+The study's own stated weakness is `n = 1 operator`. `src/agentfail/adapters/` maps public
+agent-trajectory corpora into the same event schema so the *unchanged* analyses run over them:
+
+```sh
+python -m agentfail adapt --adapter openhands --out <export> <output.jsonl files>
+python -m agentfail report --trace <export> --json <result.json>
+python scripts/replicate.py --public <result.json> --export <export>
+```
+
+Short version: the context-pressure result replicates and generalises; the low loop rate turns out
+to be a property of frontier models rather than of the operator, and is false stated as a claim
+about agents in general; the elapsed-time result cannot be tested externally because no public
+corpus has an untruncated tail. Details, and a correction to the original, in
+[docs/REPLICATION.md](docs/REPLICATION.md).
 
 ## Reproduce every number
 
