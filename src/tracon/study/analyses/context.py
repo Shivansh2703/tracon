@@ -15,6 +15,8 @@ than in a footnote.
 
 from __future__ import annotations
 
+from collections import Counter
+
 from ..loader import Corpus
 from ..stats import cochran_armitage_trend, two_proportion_test, wilson
 
@@ -22,6 +24,19 @@ BIN_TOKENS = 25_000
 MAX_BIN = 12  # 300k+ collapses into the top bin
 POST_COMPACT_WINDOW_MS = 10 * 60 * 1000
 MIN_BIN_CALLS = 200
+STRATA_TOOLS = 3  # how many of the busiest tools to re-run the trend inside
+
+
+def busiest_tools(corpus: Corpus, count: int = STRATA_TOOLS) -> list[str]:
+    """The ``count`` most-used tools, which are what stratification runs inside.
+
+    Chosen by call volume rather than named literally so the same analysis
+    applies to a corpus from a different harness, whose tools are called
+    something else. On the study's own corpus this returns Bash, Read, Edit —
+    the three that were previously hard-coded — so no original figure moves.
+    """
+    counts = Counter(c["name"] for c in corpus.tool_calls if c["name"])
+    return [name for name, _ in counts.most_common(count)]
 
 
 def analyze(corpus: Corpus) -> dict:
@@ -54,7 +69,7 @@ def analyze(corpus: Corpus) -> dict:
     # rates, so an unstratified trend can be pure composition. Re-run the trend
     # inside single tools to see whether anything survives.
     stratified = {}
-    for tool in ("Bash", "Edit", "Read"):
+    for tool in busiest_tools(corpus):
         tool_bins: dict[int, list[int]] = {}
         for call in corpus.tool_calls:
             if call["name"] != tool:
