@@ -18,3 +18,15 @@ stays a separate project from tracon, positioned as empirical ammunition for tra
 Productization is explicitly undecided.
 
 Status: keep as standalone project. No productization work until he rules.
+
+---
+
+## 2026-08-04 — owner ruling relayed by Iris: packaging direction, see tracon/DECISIONS.md
+
+Verbatim (from the 2026-08-04 idea-batch review, on the agent black-box/observability idea):
+
+> "v good could be packaged all together w tracon and agentfail"
+
+Full entry and interpretation live in `tracon/DECISIONS.md` (2026-08-04 entry) — one home for
+this ruling. Here: agentfail is one of the three pieces of a packaged suite (tracon +
+agentfail + observability layer), not a standalone pitch going forward.
