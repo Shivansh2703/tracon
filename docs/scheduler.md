@@ -1,5 +1,16 @@
 # The scheduler: compiled core, policies, measured comparison
 
+> **Correction — the −36% p95 headline below is withdrawn.**
+>
+> A later replication found the policy advantage is **not reproducible under its own
+> replication seed**. Re-running the same configuration across seeds spread the result
+> from −14% to −39% (sd ≈ 12 points), and a capacity sweep produced 0% median Δp95 —
+> the effect is seed noise, not a measured latency win.
+>
+> The mechanism claims in this document still hold: the warm-rate and ordering effects
+> are real and reproducible. The **percentage latency figures are not**.
+> Do not quote −36%, or any percentage, as a latency result.
+
 Milestone 4. The decision core is C++ compiled twice from one header
 (`core/src/kernels.hpp`): as a pybind11 module (`tracon_core`) the simulator
 calls in-process, and into the Go gRPC service (`go/cmd/traconsvc`) via cgo.
@@ -119,7 +130,9 @@ prefix-cache fleets target, **cache ≈ working set with a real reload cost**,
 warm-first selection preserves residency FIFO squanders: at a 2s penalty
 `affinity` lifts the warm rate 90→94% and cuts p95 by 20%, and `tracon`
 compounds dependency + session awareness to **−36% p95 / −27% p99 vs FIFO**
-with no oracle knowledge. Oracle-SJF stays the upper bound at −62% p95. And at
+with no oracle knowledge. Oracle-SJF stays the upper bound at −62% p95.
+(**Withdrawn — see the correction at the top of this document. These percentages do
+not reproduce across replication seeds and should not be quoted.**) And at
 a 10s penalty this configuration is **past saturation**: reload work exceeds
 spare capacity, queues grow without bound over the trace window (p50 in the
 tens of thousands of seconds), residency churns until warm rates collapse to
