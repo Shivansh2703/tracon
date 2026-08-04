@@ -5,6 +5,7 @@ description = "Dependency- and session-aware scheduler for agentic LLM workloads
 authors = [
     { name = "Shivansh", email = "shivansh.sonit@gmail.com" }
 ]
+license = "MIT"
 requires-python = ">=3.12"
 dependencies = [
     "grpcio>=1.83.0",
