@@ -19,9 +19,9 @@ from pathlib import Path
 from typing import Any
 
 from tracon.sim.engine import Engine
-from tracon.sim.policies import FIFOPolicy, Policy
+from tracon.sim.policies import make_policy
 from tracon.sim.server import ModelServer, Request
-from tracon.sim.workload import StreamKey, Turn, Workload, build_workload
+from tracon.sim.workload import StreamKey, Turn, Workload, build_workload, replicate_workload
 from tracon.trace.characterize import dist
 
 
@@ -32,22 +32,24 @@ class SimConfig:
     max_wait_ms: float = 10.0
     time_compress: float = 1.0
     policy: str = "fifo"
-
-
-def make_policy(name: str) -> Policy:
-    if name == "fifo":
-        return FIFOPolicy()
-    raise ValueError(f"unknown policy: {name}")
+    replicate: int = 1  # workload copies with phase offsets (the load knob)
+    cold_penalty_ms: float = 0.0  # added service when a stream's context is cold
+    resident_streams: int = 4  # per-executor context LRU capacity
 
 
 @dataclass
 class _TurnRun:
     turn: Turn
     gates: int
+    prev: _TurnRun | None = None
     started_ms: float | None = None
     completion_ms: float | None = None
     pending_tools: int = 0
     waiters: list[Any] = field(default_factory=list)
+    # chains demonstrably blocked on this one: a same-stream next turn whose clock
+    # arrival already fired, or a parent gated on this sync spawn. Direct counts
+    # only — no transitive closure through spawn trees (documented limitation).
+    blocked_waiters: int = 0
 
 
 class Simulation:
@@ -55,13 +57,19 @@ class Simulation:
         self._workload = workload
         self._config = config
         self._engine = Engine()
+        policy = make_policy(config.policy)
         self._server = ModelServer(
             self._engine,
-            make_policy(config.policy),
+            policy,
             executors=config.executors,
             max_batch=config.max_batch,
             max_wait_ms=config.max_wait_ms,
+            cold_penalty_ms=config.cold_penalty_ms,
+            resident_streams=config.resident_streams,
         )
+        bind = getattr(policy, "bind_server", None)
+        if bind is not None:  # affinity-aware policies read executor residency
+            bind(self._server)
         self._runs: dict[str, _TurnRun] = {}
         self._referenced: set[StreamKey] = {
             tool.spawned_stream
@@ -81,15 +89,20 @@ class Simulation:
                 clock_released = not turn.spawned or turn.stream not in self._referenced
                 gates = (1 if clock_released else 0) + (1 if prev is not None else 0)
                 # a spawned turn waits only for its parent's launch (1 implicit gate)
-                run = _TurnRun(turn=turn, gates=max(gates, 1))
+                run = _TurnRun(turn=turn, gates=max(gates, 1), prev=prev)
                 self._runs[turn.turn_id] = run
                 if prev is not None:
                     prev.waiters.append(partial(self._open_gate, run))
                 if clock_released:
-                    self._engine.at(self._arrival(turn), partial(self._open_gate, run))
+                    self._engine.at(self._arrival(turn), partial(self._clock_arrival, run))
                 prev = run
         self._engine.run()
         return self._results()
+
+    def _clock_arrival(self, run: _TurnRun) -> None:
+        self._open_gate(run)
+        if run.started_ms is None and run.prev is not None and run.prev.completion_ms is None:
+            run.prev.blocked_waiters += 1  # arrived, but queued behind its own stream
 
     def _open_gate(self, run: _TurnRun) -> None:
         run.gates -= 1
@@ -104,6 +117,7 @@ class Simulation:
             stream=run.turn.stream,
             service_ms=step.service_ms,
             on_complete=partial(self._model_done, run, index),
+            waiters=partial(self._blocked_waiters, run),
         )
         if step.pre_gap_ms > 0:  # traced client-side dead time before issuing
             self._engine.after(step.pre_gap_ms, partial(self._server.submit, request))
@@ -128,6 +142,7 @@ class Simulation:
                     else:
                         # parent resumes at child completion plus the traced
                         # notification/return overhead beyond the child's chain
+                        child.blocked_waiters += 1  # the parent is provably waiting
                         if tool.overhead_ms > 0:
                             child.waiters.append(
                                 partial(self._engine.after, tool.overhead_ms, done)
@@ -137,6 +152,10 @@ class Simulation:
                         self._launch_child(child)
                     continue
             self._engine.after(tool.duration_ms, done)
+
+    @staticmethod
+    def _blocked_waiters(run: _TurnRun) -> int:
+        return run.blocked_waiters
 
     def _launch_child(self, child: _TurnRun) -> None:
         if child.started_ms is None and child.completion_ms is None:
@@ -206,6 +225,9 @@ class Simulation:
                 "max_wait_ms": config.max_wait_ms,
                 "time_compress": config.time_compress,
                 "policy": config.policy,
+                "replicate": config.replicate,
+                "cold_penalty_ms": config.cold_penalty_ms,
+                "resident_streams": config.resident_streams,
             },
             "turns_completed": len(turn_latencies),
             "turns_incomplete": incomplete,
@@ -221,6 +243,10 @@ class Simulation:
                 else 0,
             },
             "utilization": utilization,
+            "context": {
+                "warm_serves": stats.warm_serves,
+                "cold_serves": stats.cold_serves,
+            },
             "makespan_hours": round(makespan / 3_600_000, 2),
             "fidelity": fidelity,
             "workload_skipped": self._workload.skipped,
@@ -228,5 +254,5 @@ class Simulation:
 
 
 def simulate(traces_dir: Path, config: SimConfig) -> dict[str, Any]:
-    workload = build_workload(traces_dir / "events.jsonl")
+    workload = replicate_workload(build_workload(traces_dir / "events.jsonl"), config.replicate)
     return Simulation(workload, config).run()

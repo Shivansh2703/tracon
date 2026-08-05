@@ -15,5 +15,8 @@ build/
 # real sessions on this machine; publish aggregates, not traces
 traces/
 
+# local planning scratch, never published
+board/
+
 .DS_Store
 .coverage

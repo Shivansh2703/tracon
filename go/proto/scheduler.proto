@@ -1,0 +1,33 @@
+// tracon scheduler service: the same decision core (core/src/kernels.hpp),
+// reachable over gRPC. RequestViews in, queue positions out — identical to the
+// pybind11 seam, so parity between the two transports is a standing test.
+syntax = "proto3";
+
+package tracon;
+
+option go_package = "traconsvc/schedpb;schedpb";
+
+message RequestView {
+  int64 req = 1;        // caller-side handle (queue position)
+  int32 stream = 2;     // interned stream id
+  double ready_ms = 3;  // when the request became ready
+  double service_ms = 4;
+  int32 waiters = 5;    // chains blocked on this request's completion
+  int32 warm = 6;       // 1 if context resident on a free executor
+}
+
+message SelectRequest {
+  string kernel = 1;  // fifo | sjf | unblock | affinity | tracon
+  repeated RequestView queue = 2;
+  int64 k = 3;
+  double now = 4;
+  double starve_ms = 5;
+}
+
+message SelectResponse {
+  repeated int64 indices = 1;  // selected queue positions, dispatch order
+}
+
+service Scheduler {
+  rpc Select(SelectRequest) returns (SelectResponse);
+}

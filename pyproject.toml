@@ -7,7 +7,10 @@ authors = [
 ]
 license = "MIT"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "grpcio>=1.83.0",
+    "tracon-core",
+]
 
 [project.scripts]
 tracon = "tracon:main"
@@ -16,8 +19,15 @@ tracon = "tracon:main"
 requires = ["uv_build>=0.11.26,<0.12.0"]
 build-backend = "uv_build"
 
+[tool.uv.workspace]
+members = ["core"]
+
+[tool.uv.sources]
+tracon-core = { workspace = true }
+
 [dependency-groups]
 dev = [
+    "grpcio-tools>=1.83.0",
     "pytest>=9.1.1",
     "pytest-cov>=7.1.0",
     "ruff>=0.16.1",
@@ -27,6 +37,7 @@ dev = [
 [tool.ruff]
 line-length = 100
 target-version = "py312"
+extend-exclude = ["src/tracon/schedpb"]  # protoc-generated
 
 [tool.ruff.lint]
 select = ["ALL"]
@@ -53,14 +64,26 @@ ignore = [
     "PLR0917",
 ]
 "src/tracon/trace/privacy.py" = ["PLR0911"]  # _type_code is a type dispatch table
+"src/tracon/sim/policies.py" = ["ARG002"]  # protocol-fixed signature; FIFO ignores `now`
+"src/tracon/sim/server.py" = [
+    "PLR0913",  # the backend has seven real knobs; a config object would just rename them
+    "PLR0917",
+]
 "tests/*" = ["S101", "PLR2004", "SLF001", "INP001", "FBT", "PLR0913", "PLR0917"]
+"scripts/*" = ["T201", "INP001"]  # benches print their tables
 
 [tool.pytest.ini_options]
 addopts = ["--cov=tracon", "--cov-fail-under=80"]
 testpaths = ["tests"]
 
+[tool.coverage.run]
+omit = ["*/schedpb/*"]  # protoc-generated
+
 [tool.ty.terminal]
 error-on-warning = true
+
+[tool.ty.src]
+exclude = ["src/tracon/schedpb"]  # protoc-generated
 
 [tool.ty.environment]
 python-version = "3.12"

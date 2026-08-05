@@ -14,12 +14,14 @@ turn latencies the simulator must reproduce at infinite capacity.
 from __future__ import annotations
 
 import json
+import random
 from collections import defaultdict
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any
 
 MIN_SERVICE_MS = 1.0
+REPLICATE_SEED = 4  # fixed: replica phase offsets are part of the methodology
 
 StreamKey = tuple[str, str | None]  # (session, agent-hex | None for the main stream)
 
@@ -274,3 +276,60 @@ def build_workload(events_path: Path) -> Workload:
     builder = _Builder()
     builder.load(events_path)
     return builder.build()
+
+
+def _replica_turn(turn: Turn, tag: str, offset_ms: float) -> Turn:
+    stream = (f"{tag}:{turn.stream[0]}", turn.stream[1])
+    steps = [
+        replace(
+            step,
+            tools=[
+                replace(
+                    tool,
+                    spawned_stream=(f"{tag}:{tool.spawned_stream[0]}", tool.spawned_stream[1])
+                    if tool.spawned_stream is not None
+                    else None,
+                )
+                for tool in step.tools
+            ],
+        )
+        for step in turn.steps
+    ]
+    return replace(
+        turn,
+        turn_id=f"{tag}:{turn.turn_id}",
+        stream=stream,
+        arrival_ms=turn.arrival_ms + offset_ms,
+        steps=steps,
+    )
+
+
+def replicate_workload(workload: Workload, factor: int) -> Workload:
+    """Scale load the way a serving fleet experiences it: `factor` copies of the
+    workload as independent sessions, phase-shifted by deterministic offsets drawn
+    uniformly over the trace span (seeded — reruns are byte-identical). Replica 0
+    is the original; time compression stays a separate, documented knob.
+    """
+    if factor < 1:
+        raise ValueError(f"replicate factor must be >= 1, got {factor}")
+    if factor == 1:
+        return workload
+    span = max((t.arrival_ms for t in workload.clock_turns), default=0.0)
+    rng = random.Random(REPLICATE_SEED)  # noqa: S311 — deterministic methodology, not crypto
+    turns = list(workload.turns)
+    for i in range(1, factor):
+        offset = rng.uniform(0.0, span)
+        turns.extend(_replica_turn(t, f"r{i}", offset) for t in workload.turns)
+
+    turns_by_stream: dict[StreamKey, list[Turn]] = defaultdict(list)
+    for turn in turns:
+        turns_by_stream[turn.stream].append(turn)
+    for stream_turns in turns_by_stream.values():
+        stream_turns.sort(key=lambda t: t.arrival_ms)
+    return Workload(
+        turns=sorted(turns, key=lambda t: t.arrival_ms),
+        turns_by_stream=dict(turns_by_stream),
+        spawned_turns={t.stream: t for t in turns if t.spawned},
+        t0_ms=workload.t0_ms,
+        skipped=dict(workload.skipped),
+    )

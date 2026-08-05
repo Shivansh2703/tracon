@@ -8,7 +8,8 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-from tracon.sim.runner import SimConfig, simulate
+from tracon.sim.runner import SimConfig, Simulation, simulate
+from tracon.sim.workload import build_workload, replicate_workload
 from tracon.trace.characterize import characterize
 from tracon.trace.exporter import Exporter
 
@@ -75,12 +76,17 @@ def _cmd_simulate(args: argparse.Namespace) -> int:
         max_wait_ms=args.max_wait,
         time_compress=args.compress,
         policy=args.policy,
+        replicate=args.replicate,
+        cold_penalty_ms=args.cold_penalty,
+        resident_streams=args.resident,
     )
     results = simulate(args.traces, config)
     out = args.out
     if out is None:
         tag = "inf" if executors is None else str(executors)
-        out = args.traces / f"sim-{args.policy}-x{tag}-b{args.max_batch}-c{args.compress}.json"
+        out = args.traces / (
+            f"sim-{args.policy}-x{tag}-b{args.max_batch}-c{args.compress}-r{args.replicate}.json"
+        )
     out.write_text(json.dumps(results, indent=2) + "\n", encoding="utf-8")
 
     latency = results["turn_latency_ms"]
@@ -101,6 +107,43 @@ def _cmd_simulate(args: argparse.Namespace) -> int:
         print(
             f"fidelity vs traced ({results['fidelity']['turns_compared']} turns): "
             f"median abs rel error {err['p50']:.1%}, p90 {err['p90']:.1%}"
+        )
+    return EXIT_OK
+
+
+def _cmd_sweep(args: argparse.Namespace) -> int:
+    """Policy x load-multiplier comparison matrix — the milestone-4 result table."""
+    policies = args.policies.split(",")
+    replicates = [int(r) for r in args.replicates.split(",")]
+    base = build_workload(args.traces / "events.jsonl")
+    rows = []
+    for factor in replicates:
+        workload = replicate_workload(base, factor)
+        for policy in policies:
+            config = SimConfig(
+                executors=int(args.executors),
+                max_batch=args.max_batch,
+                max_wait_ms=args.max_wait,
+                policy=policy,
+                replicate=factor,
+                cold_penalty_ms=args.cold_penalty,
+                resident_streams=args.resident,
+            )
+            rows.append(Simulation(workload, config).run())
+
+    args.out.write_text(json.dumps(rows, indent=2) + "\n", encoding="utf-8")
+    print(f"| load | policy | p50 | p95 | p99 | queue p95 | util | warm |  ({args.out})")
+    print("|---|---|---|---|---|---|---|---|")
+    for row in rows:
+        latency, config = row["turn_latency_ms"], row["config"]
+        context = row["context"]
+        serves = context["warm_serves"] + context["cold_serves"]
+        warm = f"{context['warm_serves'] / serves:.0%}" if serves else "—"
+        print(
+            f"| {config['replicate']}x | {config['policy']} "
+            f"| {latency['p50'] / 1000:.1f}s | {latency['p95'] / 1000:.1f}s "
+            f"| {latency['p99'] / 1000:.1f}s "
+            f"| {row['queue_wait_ms']['p95'] / 1000:.2f}s | {row['utilization']} | {warm} |"
         )
     return EXIT_OK
 
@@ -170,8 +213,61 @@ def main(argv: list[str] | None = None) -> int:
         "--compress", type=float, default=1.0, help="time-compression load factor (default: 1)"
     )
     sim.add_argument("--policy", default="fifo", help="scheduling policy (default: fifo)")
+    sim.add_argument(
+        "--replicate",
+        type=int,
+        default=1,
+        help="phase-offset workload copies — the load knob (default: 1)",
+    )
+    sim.add_argument(
+        "--cold-penalty",
+        type=float,
+        default=0.0,
+        help="added service ms when a stream's context is cold (default: 0)",
+    )
+    sim.add_argument(
+        "--resident",
+        type=int,
+        default=4,
+        help="per-executor context LRU capacity in streams (default: 4)",
+    )
     sim.add_argument("--out", type=Path, default=None, help="results JSON path")
     sim.set_defaults(func=_cmd_simulate)
+
+    sweep = sub.add_parser(
+        "sweep",
+        help="policy x load-multiplier comparison matrix over an export",
+    )
+    sweep.add_argument("traces", type=Path, help="export directory containing events.jsonl")
+    sweep.add_argument(
+        "--policies",
+        default="fifo,core-sjf,core-unblock",
+        help="comma-separated policy list (default: fifo,core-sjf,core-unblock)",
+    )
+    sweep.add_argument(
+        "--replicates",
+        default="1,4,8",
+        help="comma-separated load multipliers (default: 1,4,8)",
+    )
+    sweep.add_argument("--executors", default="1", help="parallel batch executors (default: 1)")
+    sweep.add_argument("--max-batch", type=int, default=8, help="dynamic batch size (default: 8)")
+    sweep.add_argument(
+        "--max-wait", type=float, default=10.0, help="batching wait in ms (default: 10)"
+    )
+    sweep.add_argument(
+        "--cold-penalty",
+        type=float,
+        default=0.0,
+        help="added service ms when a stream's context is cold (default: 0)",
+    )
+    sweep.add_argument(
+        "--resident",
+        type=int,
+        default=4,
+        help="per-executor context LRU capacity in streams (default: 4)",
+    )
+    sweep.add_argument("--out", type=Path, required=True, help="results JSON path")
+    sweep.set_defaults(func=_cmd_sweep)
 
     args = parser.parse_args(argv)
     return args.func(args)
