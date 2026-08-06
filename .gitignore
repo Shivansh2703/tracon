@@ -20,3 +20,5 @@ board/
 
 .DS_Store
 .coverage
+agentfail/
+agent-obs/
