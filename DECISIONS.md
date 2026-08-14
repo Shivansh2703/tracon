@@ -119,3 +119,14 @@ accounts of silent agent failure and found none. The unaccounted runs are plausi
 mechanism behind the documented bills, but that is a hypothesis about causation, not an
 established fact, and the wedge must not be pitched as though both halves are equally
 evidenced. Falsifier ticketed with a decision rule pre-registered before the evidence.
+
+**Claim constraint, established the same day by running that falsifier** (measured, not
+argued): the 16.5%-of-subagent-runs-unaccounted figure **must not be presented as
+generalizing beyond this machine**, in launch copy or anywhere else, until a second
+multi-agent, untruncated corpus says otherwise. The only public corpus available
+(OpenHands, 13 models) cannot test it — it has **zero** subagent stubs, so the phenomenon is
+structurally absent rather than rare; it reports 0.00% non-matched tool calls against 0.02%
+on a real corpus, which is a harness signature; and its tool-duration maxima cluster just
+above 300,000 ms, i.e. a truncated tail — the same wall agentfail hit on its elapsed-time
+finding. This constraint is the same discipline that produced the two withdrawals, applied
+before the claim was made rather than after.
