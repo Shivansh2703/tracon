@@ -130,3 +130,35 @@ on a real corpus, which is a harness signature; and its tool-duration maxima clu
 above 300,000 ms, i.e. a truncated tail — the same wall agentfail hit on its elapsed-time
 finding. This constraint is the same discipline that produced the two withdrawals, applied
 before the claim was made rather than after.
+
+## 2026-08-14 (session close) — the first build is chosen
+
+Owner instruction, typed verbatim: **"keep going"**.
+
+Owner's pick on what gets built first, recorded as a selection: **a local, zero-config
+command anyone with Claude Code runs on their own machine** — reads their transcripts
+locally, uploads nothing, reports their hung runs / unaccounted runs / long tail / spend
+shape against the published base rates, and can emit an opt-in **statistics-only** aggregate
+they send back.
+
+Chosen over publishing the study first (which ticket 12 had just established would be n=1
+and unreplicable — the failure mode behind both of this repo's withdrawn headlines) and over
+fixing the foundations alone (necessary work, already inside the chosen option).
+
+Rationale of record: **every install is a potential second corpus.** It is the only option
+that attacks the evidence wall rather than routing around it.
+
+**Build order is fixed and not negotiable:** (1) fix the exporter's five-line-type format
+drift — a tool that exits 2 on a stranger's first run is dead on arrival, and whether this
+is an afternoon or a fight is itself the answer to whether transcript scraping is durable;
+(2) corpus id and schema version, **not** an operator identity; (3) the report path, reusing
+`characterize` and agentfail's one-JSON-generates-everything pattern with its `--check`
+gate; (4) the aggregate emitter last, behind a tested privacy invariant.
+
+**Two blockers dissolved rather than solved:** the machine-local salt and the absent
+operator-identity field were both artifacts of assuming a pooled *event* corpus. Statistics
+travel; events do not; the privacy guarantee gets stronger as a result.
+
+**Still owed by the owner before any code:** repo, visibility, name and licence. `tracon` is
+PUBLIC and carries a withdrawn headline this tool has nothing to do with, so the repo choice
+is a real one. Naming and any registration remain his alone, as always.
