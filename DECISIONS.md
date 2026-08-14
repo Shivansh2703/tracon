@@ -90,3 +90,32 @@ removed the overlap) independently **replicates** two July findings to the digit
 execution is 79% of busy time, and the median model call reads 99.1% of its input from
 cache (July: 98.9%). Given two withdrawn headlines in this repo's history, a figure that
 replicates on an independent corpus is worth more than a larger one that does not.
+
+## 2026-08-14 (later still) — the wedge is chosen
+
+Owner instruction, typed verbatim: **"well do it then big dawg"** — resolve the wedge
+ticket rather than hold it for another session.
+
+Owner's pick, recorded as a selection: **silent-failure detection on production agent
+traces** —
+
+> *"Teams running coding agents in production can't see which runs hung, looped, or ended
+> with no outcome — or what those cost; we find them in the traces they already generate,
+> and report measured base rates instead of a dashboard."*
+
+Chosen over two alternatives that were drafted and argued: the rehydration-bill angle
+(biggest number on the map — 11.7B cache-read against 1.4M raw input — but a cost tool has
+to beat "switch to the flat-rate plan", and that is what people actually did), and the
+counterfactual simulator (by far the most differentiated asset, and the only one that makes
+the C++ core and Go service load-bearing, but with zero demand evidence anywhere). The pick
+was recommended partly because it **fails safe**: if it dies as a product, a publishable
+measurement is still left behind.
+
+**Seam recorded at the moment of the decision, not after:** the sentence has two halves with
+unequal evidence. *Hung, looped, and what it cost* is documented in strangers' own words
+with dollars attached. *Ended with no outcome* is measured on exactly one machine — the
+owner's, at 16.5% of subagent runs — and the demand research went looking for first-person
+accounts of silent agent failure and found none. The unaccounted runs are plausibly the
+mechanism behind the documented bills, but that is a hypothesis about causation, not an
+established fact, and the wedge must not be pitched as though both halves are equally
+evidenced. Falsifier ticketed with a decision rule pre-registered before the evidence.
