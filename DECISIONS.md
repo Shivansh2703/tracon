@@ -59,3 +59,34 @@ applications are accepted with no promised response timing, the batch runs
 October–December in San Francisco, and Winter 2027's deadline remains unpublished —
 consistent with `mma-app/docs/yc_readiness_checklist_2026-08-10.md`, which stands and is
 not to be redone.
+
+## 2026-08-14 (later) — the multiplayer wedge is dead; the hunt continues
+
+Owner ruling in tab, on whether four vendors already shipping human session sharing kills
+the wedge. Selection, recorded as a selection: **"It kills it — a feature four vendors ship
+isn't a company."** Warp, Sourcegraph Amp (2026-07-22), Zed's Delta (2026-08-13) and GitHub
+Copilot all ship it; three own both runtime and client; Anthropic's Claude Cowork states
+*"Sessions can't be shared with others"* as a gap rather than a design stance.
+
+The kill is scoped to the multiplayer wedge only. It does not touch the corpus decay, the
+exporter's format drift, or the same-day "we buildin the third leg" ruling.
+
+Owner then typed, verbatim, in the same turn:
+
+> **"well lets keep going and trying to find the real wedge for tracon"**
+
+This **supersedes** a menu selection of "back to spec-first" made moments earlier in the
+same turn; both are on the record. The wayfinder map's destination generalizes from *the
+multiplayer wedge* to *a wedge for tracon's assets, or evidence there isn't one*.
+
+**Method correction, now binding on the effort** — the lesson the dead candidate bought:
+start from where money is already being spent and pain is already articulated, then ask
+which asset touches it. The first candidate was picked supply-first from an RFS paragraph
+and demand was hunted afterwards; it was never found.
+
+**Measured the same day, and the most durable result this project has produced:** a fresh
+export (`export-2026-08-14`, sharing no transcripts with the July one — the rolling delete
+removed the overlap) independently **replicates** two July findings to the digit. Tool
+execution is 79% of busy time, and the median model call reads 99.1% of its input from
+cache (July: 98.9%). Given two withdrawn headlines in this repo's history, a figure that
+replicates on an independent corpus is worth more than a larger one that does not.
