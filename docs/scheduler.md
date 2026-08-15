@@ -1,15 +1,19 @@
 # The scheduler: compiled core, policies, measured comparison
 
-> **Correction — the −36% p95 headline below is withdrawn.**
+> **Correction — the context-affinity p95/p99 latency headline is withdrawn.**
 >
 > A later replication found the policy advantage is **not reproducible under its own
 > replication seed**. Re-running the same configuration across seeds spread the result
-> from −14% to −39% (sd ≈ 12 points), and a capacity sweep produced 0% median Δp95 —
-> the effect is seed noise, not a measured latency win.
+> across a range roughly twenty-five points wide (sd ≈ 12 points), and a capacity sweep
+> produced no median change in p95 at all — the effect is seed noise, not a measured
+> latency win.
 >
 > The mechanism claims in this document still hold: the warm-rate and ordering effects
-> are real and reproducible. The **percentage latency figures are not**.
-> Do not quote −36%, or any percentage, as a latency result.
+> are real and reproducible. The **percentage latency figures are not**, and the figures
+> themselves have been removed from this document rather than annotated in place, so
+> that no reader or scraper can lift them back out of context.
+>
+> Do not quote any percentage from this work as a latency result.
 
 Milestone 4. The decision core is C++ compiled twice from one header
 (`core/src/kernels.hpp`): as a pybind11 module (`tracon_core`) the simulator
@@ -127,12 +131,16 @@ barely moves the needle, while `tracon`'s dependency term already cuts p95 by
 active streams — the 1-executor sweeps), selection order can't preserve
 residency and warm rates pin near 16% for every policy. In the regime real
 prefix-cache fleets target, **cache ≈ working set with a real reload cost**,
-warm-first selection preserves residency FIFO squanders: at a 2s penalty
-`affinity` lifts the warm rate 90→94% and cuts p95 by 20%, and `tracon`
-compounds dependency + session awareness to **−36% p95 / −27% p99 vs FIFO**
-with no oracle knowledge. Oracle-SJF stays the upper bound at −62% p95.
-(**Withdrawn — see the correction at the top of this document. These percentages do
-not reproduce across replication seeds and should not be quoted.**) And at
+warm-first selection preserves residency FIFO squanders: `affinity` lifts the
+warm rate at a 2s penalty, and `tracon` compounds dependency + session
+awareness on top of it, with no oracle knowledge.
+
+(**The latency percentages that stood here are withdrawn — see the correction at
+the top of this document. They do not reproduce across replication seeds, and the
+figures have been removed rather than merely annotated, so that no reader or
+scraper can lift them back out of context. The mechanism claims — that warm-first
+selection preserves residency, and that ordering effects are real — still stand;
+the numbers attached to them do not.**) And at
 a 10s penalty this configuration is **past saturation**: reload work exceeds
 spare capacity, queues grow without bound over the trace window (p50 in the
 tens of thousands of seconds), residency churns until warm rates collapse to

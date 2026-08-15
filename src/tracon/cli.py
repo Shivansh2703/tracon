@@ -5,9 +5,11 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import tempfile
 from datetime import datetime
 from pathlib import Path
 
+from tracon import doctor
 from tracon.sim.runner import SimConfig, Simulation, simulate
 from tracon.sim.workload import build_workload, replicate_workload
 from tracon.trace.characterize import characterize
@@ -48,6 +50,65 @@ def _cmd_export(args: argparse.Namespace) -> int:
             print("\nfailing loudly (pass --allow-unknown to export anyway)", file=sys.stderr)
             return EXIT_ANOMALIES
         print("\ncontinuing despite anomalies (--allow-unknown)", file=sys.stderr)
+    return EXIT_OK
+
+
+def _write_aggregate(traces: Path, findings, out_path: Path) -> None:
+    """Write the shareable aggregate and show the user exactly what it holds.
+
+    The bytes are printed before anything else, because consent to share a file you have
+    not read is not consent.
+    """
+    manifest_path = Path(traces) / "manifest.json"
+    manifest = None
+    if manifest_path.exists():
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+
+    payload = doctor.aggregate(findings, manifest)
+    body = json.dumps(payload, indent=2) + "\n"
+    out_path.write_text(body, encoding="utf-8")
+
+    print("\n" + "=" * 72)
+    print(doctor.SHARE_NOTICE)
+    print(body, end="")
+    print("=" * 72)
+    print(f"written to {out_path} — nothing has been sent.")
+
+
+def _cmd_doctor(args: argparse.Namespace) -> int:
+    traces = args.traces
+    tmp: tempfile.TemporaryDirectory | None = None
+
+    if traces is None:
+        # Zero-config path: someone typed `tracon doctor` and expects an answer, not a
+        # tutorial about exporting first. Export into a temp dir, read it, throw it away.
+        tmp = tempfile.TemporaryDirectory(prefix="tracon-doctor-")
+        traces = Path(tmp.name)
+        print(f"reading transcripts from {args.root} …", file=sys.stderr)
+        exporter = Exporter(root=args.root, out_dir=traces)
+        exporter.run()
+        if exporter.anomalies.any():
+            # Not fatal here. doctor's job is to report on the runs it could read, and a
+            # new Claude Code line type should not stop someone seeing their hung agents.
+            print(
+                "note: this Claude Code version has line shapes tracon does not know yet; "
+                "they were skipped. Run `tracon export` to see them.",
+                file=sys.stderr,
+            )
+
+    try:
+        findings = doctor.diagnose(traces)
+        print(doctor.render(findings))
+        if args.json_out is not None:
+            args.json_out.write_text(
+                json.dumps(doctor.to_json(findings), indent=2) + "\n", encoding="utf-8"
+            )
+            print(f"\nfindings written to {args.json_out}")
+        if args.share_out is not None:
+            _write_aggregate(traces, findings, args.share_out)
+    finally:
+        if tmp is not None:
+            tmp.cleanup()
     return EXIT_OK
 
 
@@ -194,6 +255,44 @@ def main(argv: list[str] | None = None) -> int:
         help="output directory (default: the traces directory itself)",
     )
     char.set_defaults(func=_cmd_characterize)
+
+    doctor = sub.add_parser(
+        "doctor",
+        help="what went wrong in your agent runs, and what it cost (runs locally, uploads nothing)",
+    )
+    doctor.add_argument(
+        "traces",
+        type=Path,
+        nargs="?",
+        default=None,
+        help="an existing export directory; omit to export from --root into a temp dir first",
+    )
+    doctor.add_argument(
+        "--root",
+        type=Path,
+        default=Path("~/.claude/projects"),
+        help="transcript root to walk when no export is given (default: ~/.claude/projects)",
+    )
+    doctor.add_argument(
+        "--json",
+        type=Path,
+        default=None,
+        dest="json_out",
+        help="also write findings as JSON to this path",
+    )
+    doctor.add_argument(
+        "--share",
+        type=Path,
+        default=None,
+        nargs="?",
+        const=Path("tracon-aggregate.json"),
+        dest="share_out",
+        help=(
+            "write a shareable aggregate (scalars + built-in tool names only) to this path "
+            "and print it. Sends nothing — tracon makes no network calls"
+        ),
+    )
+    doctor.set_defaults(func=_cmd_doctor)
 
     sim = sub.add_parser(
         "simulate",

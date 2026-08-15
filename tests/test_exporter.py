@@ -212,6 +212,28 @@ def by_ev(events, kind):
     return [e for e in events if e["ev"] == kind]
 
 
+def test_manifest_carries_corpus_id_and_never_a_literal_root(fixture_root, tmp_path):
+    """The manifest must be shareable by construction.
+
+    A manifest that can never travel is one someone eventually copies by hand, so the
+    root is tokenized rather than stored literally — it is an absolute path carrying a
+    username. corpus_id is stable per machine and identifies nothing, which is what lets
+    a stranger's repeat submission be recognised as the same corpus.
+    """
+    manifest, _, _ = run_export(fixture_root, tmp_path)
+
+    assert manifest["corpus_id"].startswith("t_")
+    assert manifest["tracon_version"]
+
+    # The literal root must not survive anywhere in the manifest.
+    assert manifest["root"].startswith("t_")
+    assert str(fixture_root) not in json.dumps(manifest)
+
+    # Stable across runs on the same machine — joins work, repeat submissions collapse.
+    again, _, _ = run_export(fixture_root, tmp_path / "second")
+    assert again["corpus_id"] == manifest["corpus_id"]
+
+
 def test_export_structure(fixture_root, tmp_path):
     manifest, events, _ = run_export(fixture_root, tmp_path)
 
