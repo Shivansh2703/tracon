@@ -184,3 +184,43 @@ still name both banned figures, because they are the enforcement list — a ban 
 say what is banned cannot be checked by any future seat, and those files are not
 public-facing prose. `DECISIONS.md` likewise retains them because it is append-only by law
 and is never rewritten. If the owner wants those stripped too, that is a separate ruling.
+
+## 2026-08-14 — `tracon doctor` shipped, all four steps
+
+Owner, typed verbatim: **"go"**, then **"just keep going until you done"**.
+
+`tracon doctor` exists and runs. Zero-config: with no argument it exports from
+`~/.claude/projects` into a temp directory, reports, and discards it. It reports runs that
+ended with no recorded outcome, tool calls that never returned, the long tail, and the shape
+of token spend — printed beside reference figures, each labelled with whether it replicated.
+
+Four steps, all verified rather than asserted:
+1. **Exporter drift fixed** — five line types and one system subtype added since July;
+   full corpus now exports at **exit 0** with an empty anomalies block.
+2. **`corpus_id` + tokenized `root`** — the manifest no longer stores an absolute path
+   carrying a username.
+3. **The report path** — `tracon doctor`, with `--json`.
+4. **The aggregate** — `tracon doctor --share`, 1,000 bytes on the reference corpus.
+
+**80 tests pass, ruff clean.** Two detectors were mutation-checked: reinstating a literal
+root fails its test; treating every non-null status as accounted fails the suite.
+
+**Seat decision taken under "just keep going", reversible, recorded as a seat decision and
+not an owner ruling:** the aggregate is scalars plus an **allow-list** of Claude Code
+built-in tool names, everything else collapsing to `other`. The allow-list proved
+load-bearing rather than tidy — the real corpus put 976 minutes of `mcp__claude-in-chrome__*`
+time into `other`, and a naive "statistics only, no free text" rule would have shipped the
+name of an installed browser extension. Custom agent types are user-named
+(`opus-med`, `sonnet-med` are this operator's own), so agent types do not travel at all.
+**tracon makes no network calls; the user carries the file.**
+
+**Durability question, answered:** transcript scraping is a **chore, not a structural
+warning** — the drift fix took about twenty minutes. The finding underneath it was worth
+more: `pr-link` and `custom-title` carry identifying content, and the obvious "just handle
+the new types" repair would have put a GitHub repository and user-typed session names into
+an export whose whole guarantee is that content does not survive capture.
+
+**Owed by the owner, deliberately not taken by the seat:** what may be *done* with an
+aggregate a stranger sends — publish it, combine it into a public base-rate table, name
+contributors. That affects other people, so no keep-going instruction covers it, and it
+belongs inside the `--share` notice so a contributor reads it before deciding.
