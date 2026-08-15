@@ -1,15 +1,19 @@
 # The scheduler: compiled core, policies, measured comparison
 
-> **Correction — the −36% p95 headline below is withdrawn.**
+> **Correction — the context-affinity p95/p99 latency headline is withdrawn.**
 >
 > A later replication found the policy advantage is **not reproducible under its own
 > replication seed**. Re-running the same configuration across seeds spread the result
-> from −14% to −39% (sd ≈ 12 points), and a capacity sweep produced 0% median Δp95 —
-> the effect is seed noise, not a measured latency win.
+> across a range roughly twenty-five points wide (sd ≈ 12 points), and a capacity sweep
+> produced no median change in p95 at all — the effect is seed noise, not a measured
+> latency win.
 >
 > The mechanism claims in this document still hold: the warm-rate and ordering effects
-> are real and reproducible. The **percentage latency figures are not**.
-> Do not quote −36%, or any percentage, as a latency result.
+> are real and reproducible. The **percentage latency figures are not**, and the figures
+> themselves have been removed from this document rather than annotated in place, so
+> that no reader or scraper can lift them back out of context.
+>
+> Do not quote any percentage from this work as a latency result.
 
 Milestone 4. The decision core is C++ compiled twice from one header
 (`core/src/kernels.hpp`): as a pybind11 module (`tracon_core`) the simulator

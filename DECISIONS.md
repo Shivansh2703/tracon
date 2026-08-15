@@ -162,3 +162,25 @@ travel; events do not; the privacy guarantee gets stronger as a result.
 **Still owed by the owner before any code:** repo, visibility, name and licence. `tracon` is
 PUBLIC and carries a withdrawn headline this tool has nothing to do with, so the repo choice
 is a real one. Naming and any registration remain his alone, as always.
+
+## 2026-08-14 — command name, and the retraction banner
+
+Owner, typed verbatim: **"sure doctor it is. strip"**
+
+1. **The command is `tracon doctor`** — a subcommand alongside `export`, `characterize`,
+   `simulate`, `sweep`. The standalone product name from the closed map is moot; the tool
+   ships inside the existing public repo, so no brand and no registration is involved.
+2. **Strip the withdrawn figures from the retraction banner in `docs/scheduler.md`.** The
+   seat recommended keeping them (a retraction is harder to find if you cannot search the
+   number it retracts); the owner ruled strip and the ruling stands. The banner now
+   describes the withdrawal — the seed spread, the null capacity sweep, the surviving
+   mechanism claims — without printing any of the dead digits.
+
+**Verified after the edit:** zero occurrences of the withdrawn or debunked figures remain
+anywhere in `docs/`.
+
+**Deliberately NOT stripped, flagged rather than assumed:** `CLAUDE.md` and `AGENTS.md`
+still name both banned figures, because they are the enforcement list — a ban that does not
+say what is banned cannot be checked by any future seat, and those files are not
+public-facing prose. `DECISIONS.md` likewise retains them because it is append-only by law
+and is never rewritten. If the owner wants those stripped too, that is a separate ruling.
