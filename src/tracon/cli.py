@@ -53,6 +53,28 @@ def _cmd_export(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+def _write_aggregate(traces: Path, findings, out_path: Path) -> None:
+    """Write the shareable aggregate and show the user exactly what it holds.
+
+    The bytes are printed before anything else, because consent to share a file you have
+    not read is not consent.
+    """
+    manifest_path = Path(traces) / "manifest.json"
+    manifest = None
+    if manifest_path.exists():
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+
+    payload = doctor.aggregate(findings, manifest)
+    body = json.dumps(payload, indent=2) + "\n"
+    out_path.write_text(body, encoding="utf-8")
+
+    print("\n" + "=" * 72)
+    print(doctor.SHARE_NOTICE)
+    print(body, end="")
+    print("=" * 72)
+    print(f"written to {out_path} — nothing has been sent.")
+
+
 def _cmd_doctor(args: argparse.Namespace) -> int:
     traces = args.traces
     tmp: tempfile.TemporaryDirectory | None = None
@@ -82,6 +104,8 @@ def _cmd_doctor(args: argparse.Namespace) -> int:
                 json.dumps(doctor.to_json(findings), indent=2) + "\n", encoding="utf-8"
             )
             print(f"\nfindings written to {args.json_out}")
+        if args.share_out is not None:
+            _write_aggregate(traces, findings, args.share_out)
     finally:
         if tmp is not None:
             tmp.cleanup()
@@ -255,6 +279,18 @@ def main(argv: list[str] | None = None) -> int:
         default=None,
         dest="json_out",
         help="also write findings as JSON to this path",
+    )
+    doctor.add_argument(
+        "--share",
+        type=Path,
+        default=None,
+        nargs="?",
+        const=Path("tracon-aggregate.json"),
+        dest="share_out",
+        help=(
+            "write a shareable aggregate (scalars + built-in tool names only) to this path "
+            "and print it. Sends nothing — tracon makes no network calls"
+        ),
     )
     doctor.set_defaults(func=_cmd_doctor)
 

@@ -37,6 +37,23 @@ REFERENCE = {
 }
 
 
+# Tool names that may appear in a shared aggregate. This is an ALLOW-LIST, and that is
+# load-bearing: tool names are not all Claude Code's own vocabulary. Every `mcp__*` name is
+# user-installed and discloses what software someone runs — `mcp__claude-in-chrome__*`
+# names a browser extension, a private MCP server names itself. Custom subagent types are
+# user-named too, which is why agent_type is absent from the aggregate entirely.
+#
+# Anything not on this list collapses to "other". A name either matches a hardcoded entry
+# or it does not travel; there is no filtering step to get wrong.
+SHAREABLE_TOOLS = frozenset(
+    {
+        "Bash", "Read", "Edit", "Write", "Glob", "Grep", "NotebookEdit",
+        "WebFetch", "WebSearch", "Agent", "Task", "TodoWrite", "ToolSearch",
+        "SendMessage", "AskUserQuestion", "ExitPlanMode", "Skill",
+    }
+)  # fmt: skip
+
+
 def _q(values: list[float], p: float) -> float:
     if not values:
         return 0.0
@@ -258,6 +275,60 @@ def render(f: Findings) -> str:
         "norm — a rate that differs from them is a difference, not a fault."
     )
     return "\n".join(out)
+
+
+SHARE_NOTICE = """\
+This file was written locally by `tracon doctor --share`. Nothing has been sent anywhere —
+tracon makes no network calls at all. You choose whether to share it, and with whom.
+
+What it contains: counts, rates and quantiles from your agent runs, plus per-tool time for
+Claude Code's built-in tools only. Everything else — MCP tool names, custom agent types,
+paths, branches, prompts, arguments, outputs, timestamps of individual runs — is absent by
+construction: this file is built by naming the fields that go in, not by stripping fields
+out. corpus_id is derived from a machine-local secret and identifies nothing; it exists so
+two files from the same machine are recognisable as the same corpus.
+"""
+
+
+def aggregate(f: Findings, manifest: dict | None = None) -> dict:
+    """The shareable aggregate: scalars, plus allow-listed tool names.
+
+    Built additively — every field is named here. Nothing is copied from an event, a
+    manifest, or a dict comprehension over unknown keys, because the leak this guards
+    against is a *future* field arriving and travelling by default.
+    """
+    tool_ms: dict[str, float] = {}
+    for name, ms in f.by_tool_ms.items():
+        key = name if name in SHAREABLE_TOOLS else "other"
+        tool_ms[key] = tool_ms.get(key, 0.0) + ms
+
+    out = {
+        "aggregate_version": 1,
+        "sessions": f.sessions,
+        "agents": f.agents,
+        "unaccounted": f.unaccounted,
+        "unaccounted_rate": round(f.unaccounted_rate, 4),
+        "never_returned": f.never_returned,
+        "tool_calls": f.tool_calls,
+        "tool_error_rate": round(f.tool_errors / f.tool_calls, 4) if f.tool_calls else 0.0,
+        "tool_share_of_busy_time": round(f.tool_share, 4),
+        "tool_ms_total": round(f.tool_ms_total),
+        "model_ms_total": round(f.model_ms_total),
+        "slowest_call_ms": round(max(f.durations_ms)) if f.durations_ms else 0,
+        "duration_p50_ms": round(_q(f.durations_ms, 0.5)),
+        "duration_p95_ms": round(_q(f.durations_ms, 0.95)),
+        "duration_p99_ms": round(_q(f.durations_ms, 0.99)),
+        "cache_read_share_p50": round(_q(f.cache_shares, 0.5), 4),
+        "tokens": dict(f.tokens),
+        "tool_ms_by_builtin": {k: round(v) for k, v in sorted(tool_ms.items())},
+    }
+    if manifest is not None:
+        # Three named fields, never the manifest itself — it carries counts and version
+        # lists that have not been reviewed for this purpose.
+        for key in ("corpus_id", "schema_version", "tracon_version"):
+            if key in manifest:
+                out[key] = manifest[key]
+    return out
 
 
 def to_json(f: Findings) -> dict:

@@ -8,7 +8,7 @@ import json
 
 import pytest
 
-from tracon.doctor import diagnose, render, to_json
+from tracon.doctor import aggregate, diagnose, render, to_json
 
 
 def write_events(tmp_path, events):
@@ -169,6 +169,73 @@ def test_doctor_reads_only_the_fields_it_declares(tmp_path):
     assert marker not in json.dumps(to_json(f))
     # and the run itself was still detected — the test would pass vacuously otherwise
     assert f.unaccounted == 1
+
+
+def test_aggregate_collapses_everything_not_on_the_allow_list(tmp_path):
+    """The leak this guards against: MCP tool names are user-installed software.
+
+    `mcp__claude-in-chrome__computer` discloses a browser extension. A private MCP server
+    discloses itself. Neither is Claude Code vocabulary, so neither travels.
+    """
+    out = write_events(
+        tmp_path,
+        [
+            tool(name="Bash", duration_ms=1000),
+            tool(name="mcp__claude-in-chrome__computer", duration_ms=2000),
+            tool(name="mcp__acme-internal__deploy", duration_ms=500),
+        ],
+    )
+    agg = aggregate(diagnose(out))
+
+    assert agg["tool_ms_by_builtin"] == {"Bash": 1000, "other": 2500}
+    blob = json.dumps(agg)
+    assert "mcp__" not in blob
+    assert "acme" not in blob
+
+
+def test_aggregate_allow_list_is_load_bearing(monkeypatch, tmp_path):
+    """Negative control. With the allow-list emptied, the MCP name must reach the output —
+    otherwise the test above proves nothing about the allow-list."""
+    out = write_events(tmp_path, [tool(name="mcp__acme-internal__deploy", duration_ms=500)])
+
+    monkeypatch.setattr("tracon.doctor.SHAREABLE_TOOLS", frozenset({"mcp__acme-internal__deploy"}))
+    leaked = json.dumps(aggregate(diagnose(out)))
+    assert "acme" in leaked
+
+
+def test_aggregate_never_carries_agent_types_or_run_detail(tmp_path):
+    """Custom subagent types are user-named — `opus-med` and `sonnet-med` are one
+    operator's own. The aggregate carries counts, never the per-run list."""
+    out = write_events(
+        tmp_path,
+        [agent("a1", None), agent("a2", None, 0, 600_000)],
+    )
+    agg = aggregate(diagnose(out))
+
+    assert agg["unaccounted"] == 2
+    assert "unaccounted_examples" not in agg
+    assert "agent_type" not in json.dumps(agg)
+    assert "worker" not in json.dumps(agg)
+
+
+def test_aggregate_takes_only_three_named_manifest_fields(tmp_path):
+    """Never the manifest itself — it holds counts and version lists not reviewed for
+    sharing, and a future field would travel by default."""
+    out = write_events(tmp_path, [tool()])
+    manifest = {
+        "corpus_id": "t_abc123",
+        "schema_version": 1,
+        "tracon_version": "0.1.0",
+        "root": "t_deadbeef",
+        "versions_seen": ["2.1.232"],
+        "future_field_nobody_reviewed": "LEAK",
+    }
+    agg = aggregate(diagnose(out), manifest)
+
+    assert agg["corpus_id"] == "t_abc123"
+    assert "LEAK" not in json.dumps(agg)
+    assert "versions_seen" not in agg
+    assert "root" not in agg
 
 
 def test_missing_export_is_a_clear_error(tmp_path):
