@@ -76,6 +76,21 @@ IGNORED_LINE_TYPES = frozenset(
         "frame-link",
         "summary",
         "progress",
+        # Added 2026-08-14 after twelve Claude Code releases (2.1.220 -> 2.1.232)
+        # introduced them. All five are session metadata: none carries timing,
+        # token usage, or call structure, so none produces an event.
+        #
+        # Three of them are content-bearing and must STAY ignored, never handled:
+        #   custom-title  -> user-typed session name
+        #   pr-link       -> GitHub PR number, URL and repository
+        #   relocated     -> an absolute filesystem path
+        # Emitting any of them would put identifying content into an export whose
+        # whole guarantee is that content does not survive capture.
+        "custom-title",
+        "pr-link",
+        "relocated",
+        "worktree-state",
+        "agent-setting",
     }
 )
 KNOWN_LINE_TYPES = HANDLED_LINE_TYPES | IGNORED_LINE_TYPES
@@ -91,6 +106,7 @@ IGNORED_SYSTEM_SUBTYPES = frozenset(
         "scheduled_task_fire",
         "informational",
         "bridge_status",
+        "model_consent_fallback",  # added 2026-08-14; sibling of model_refusal_fallback
     }
 )
 KNOWN_SYSTEM_SUBTYPES = HANDLED_SYSTEM_SUBTYPES | IGNORED_SYSTEM_SUBTYPES
