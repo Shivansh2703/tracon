@@ -224,3 +224,5 @@ an export whose whole guarantee is that content does not survive capture.
 aggregate a stranger sends — publish it, combine it into a public base-rate table, name
 contributors. That affects other people, so no keep-going instruction covers it, and it
 belongs inside the `--share` notice so a contributor reads it before deciding.
+
+- 2026-08-14 21:2x (Iris chat, owner verbatim): "tracon and agent-radar are a 1-2 punch both are good on their own but better together." — standing strategic frame: the two ship as complements (radar = live eyes in the editor, tracon doctor/monitor = measurement + evidence on the same failure classes); future direction work treats them as one story, two tools. Same entry mirrored in agent-radar DECISIONS.md.
