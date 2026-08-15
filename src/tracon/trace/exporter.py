@@ -16,6 +16,7 @@ import time
 from collections import Counter
 from dataclasses import dataclass, field
 from datetime import datetime
+from importlib.metadata import version
 from pathlib import Path
 from typing import Any
 
@@ -695,8 +696,18 @@ class Exporter:
 
         manifest = {
             "schema_version": schema.SCHEMA_VERSION,
+            "tracon_version": version("tracon"),
+            # Stable per machine, identifying nothing. Derived from the machine-local
+            # salt, so two exports from the same machine share a corpus_id and exports
+            # from different machines never collide — without either one revealing whose
+            # machine it is. This is what lets aggregates from a stranger be recognised
+            # as repeat submissions rather than new operators.
+            "corpus_id": self._tok.token("tracon:corpus"),
             "generated_at": datetime.now().astimezone().isoformat(timespec="seconds"),
-            "root": str(self._root),
+            # Tokenized, not literal: the raw root is an absolute path carrying a
+            # username. A manifest that can never travel is a manifest someone will
+            # eventually copy by hand.
+            "root": self._tok.token(str(self._root)),
             "duration_s": round(time.monotonic() - started, 2),
             "files": n_files,
             "sessions": n_sessions,
