@@ -28,3 +28,11 @@ packaged together. agent-obs is a README stub only, so the suite has a missing t
 the owner owes a decision on build-agent-obs-first vs launch-the-pair. Suite launch slots
 September or later (August is booked, one launch per week).
 tracon.dev + PyPI name claims are the owner's move — never register anything.
+
+## Instructions for all coding agents (folded in from AGENTS.md, 2026-08-17)
+
+Every rule in this file applies to you, whichever CLI you are. `AGENTS.md` is now a symlink to
+this file so Codex picks it up too.
+
+- Create and modify files with your editor tools (write/edit), never shell heredocs or
+  redirection.
