@@ -21,6 +21,22 @@ def _is_number(x: Any) -> bool:
     return isinstance(x, (int, float)) and not isinstance(x, bool)
 
 
+def _count(d: dict, key: str) -> int:
+    """A field read as a non-negative, non-bool int — this package's own ``to_dict`` never
+    emits anything else, so anything short of that means the JSON was hand-edited or corrupt."""
+    val = d[key]
+    if isinstance(val, bool) or not isinstance(val, int) or val < 0:
+        raise ValueError(f"{key!r}: expected a non-negative int, got {val!r}")
+    return val
+
+
+def _sub_count(d: dict, key: str, total_key: str, total: int) -> int:
+    val = _count(d, key)
+    if val > total:
+        raise ValueError(f"{key!r} ({val}) exceeds {total_key!r} ({total})")
+    return val
+
+
 def _quantile(values: list[float], p: float) -> float:
     """Quantile, pinned verbatim to tracon doctor's ``_q`` (src/tracon/doctor.py:57).
 
@@ -73,17 +89,19 @@ class AgentTypeStats:
 
     @classmethod
     def from_dict(cls, d: dict) -> AgentTypeStats:
-        unresolvable = d.get("unresolvable", 0)
+        runs = _count(d, "runs")
+        unaccounted = _sub_count(d, "unaccounted", "runs", runs)
+        unresolvable = _sub_count(d, "unresolvable", "runs", runs)
+        resolvable_runs = _sub_count(d, "resolvable_runs", "runs", runs)
+        unaccounted_resolvable = _sub_count(
+            d, "unaccounted_resolvable", "resolvable_runs", resolvable_runs
+        )
         return cls(
-            runs=d["runs"],
-            unaccounted=d["unaccounted"],
+            runs=runs,
+            unaccounted=unaccounted,
             unresolvable=unresolvable,
-            # Older JSON predates these counters — fall back to the (pre-fix) subtraction,
-            # clamped so a stale-but-buggy file can't resurrect a negative value on load.
-            resolvable_runs=d.get("resolvable_runs", max(0, d["runs"] - unresolvable)),
-            unaccounted_resolvable=d.get(
-                "unaccounted_resolvable", max(0, d["unaccounted"] - unresolvable)
-            ),
+            resolvable_runs=resolvable_runs,
+            unaccounted_resolvable=unaccounted_resolvable,
             tool_ms=d["tool_ms"],
             runtime_ms=d["runtime_ms"],
         )
@@ -173,15 +191,21 @@ class Snapshot:
 
     @classmethod
     def from_dict(cls, d: dict) -> Snapshot:
-        unresolvable = d.get("unresolvable", 0)
+        agents = _count(d, "agents")
+        unaccounted = _sub_count(d, "unaccounted", "agents", agents)
+        unresolvable = _sub_count(d, "unresolvable", "agents", agents)
+        resolvable_agents = _sub_count(d, "resolvable_agents", "agents", agents)
+        unaccounted_resolvable = _sub_count(
+            d, "unaccounted_resolvable", "resolvable_agents", resolvable_agents
+        )
         return cls(
             label=d["label"],
             corpus_id=d["corpus_id"],
             schema_version=d["schema_version"],
             generated_at=d["generated_at"],
             sessions=d["sessions"],
-            agents=d["agents"],
-            unaccounted=d["unaccounted"],
+            agents=agents,
+            unaccounted=unaccounted,
             never_returned=d["never_returned"],
             tool_calls=d["tool_calls"],
             tool_errors=d["tool_errors"],
@@ -195,12 +219,8 @@ class Snapshot:
             tokens=d["tokens"],
             cache_read_share_p50=d["cache_read_share_p50"],
             unresolvable=unresolvable,
-            # Older JSON predates these counters — fall back to the (pre-fix) subtraction,
-            # clamped so a stale-but-buggy file can't resurrect a negative value on load.
-            resolvable_agents=d.get("resolvable_agents", max(0, d["agents"] - unresolvable)),
-            unaccounted_resolvable=d.get(
-                "unaccounted_resolvable", max(0, d["unaccounted"] - unresolvable)
-            ),
+            resolvable_agents=resolvable_agents,
+            unaccounted_resolvable=unaccounted_resolvable,
             by_agent_type={k: AgentTypeStats.from_dict(v) for k, v in d["by_agent_type"].items()},
         )
 

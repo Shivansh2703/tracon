@@ -32,11 +32,16 @@ def _load_snapshot(path_str: str) -> Snapshot:
             snapshots = data["snapshots"]
             if not snapshots:
                 raise UsageError(f"{path}: track JSON has no snapshots")
-            return Snapshot.from_dict(snapshots[-1])
+            try:
+                return Snapshot.from_dict(snapshots[-1])
+            except (KeyError, ValueError) as exc:
+                raise UsageError(f"{path}: invalid snapshot ({exc})") from exc
         try:
             return Snapshot.from_dict(data)
         except KeyError as exc:
             raise UsageError(f"{path}: not a snapshot or track JSON (missing {exc})") from exc
+        except ValueError as exc:
+            raise UsageError(f"{path}: invalid snapshot ({exc})") from exc
     raise UsageError(f"{path}: not an export directory (no events.jsonl) or a .json file")
 
 
