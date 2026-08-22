@@ -17,8 +17,8 @@ from __future__ import annotations
 
 from collections import Counter
 
-from ..loader import Corpus
-from ..stats import cochran_armitage_trend, two_proportion_test, wilson
+from tracon.study.loader import Corpus
+from tracon.study.stats import cochran_armitage_trend, two_proportion_test, wilson
 
 BIN_TOKENS = 25_000
 MAX_BIN = 12  # 300k+ collapses into the top bin
@@ -57,7 +57,9 @@ def analyze(corpus: Corpus) -> dict:
     for index in sorted(bins):
         total, errs = bins[index]
         lo_k = index * BIN_TOKENS // 1000
-        label = f"{lo_k:03d}k+" if index == MAX_BIN else f"{lo_k:03d}-{lo_k + BIN_TOKENS//1000:03d}k"
+        label = (
+            f"{lo_k:03d}k+" if index == MAX_BIN else f"{lo_k:03d}-{lo_k + BIN_TOKENS // 1000:03d}k"
+        )
         table[label] = wilson(errs, total).as_dict()
         if total >= MIN_BIN_CALLS:
             rows.append((float(index), errs, total))
@@ -91,7 +93,7 @@ def analyze(corpus: Corpus) -> dict:
             "bins_used": len(tool_rows),
             "trend_test": cochran_armitage_trend(tool_rows),
             "error_rate_by_bin": {
-                f"{i*BIN_TOKENS//1000:03d}k": wilson(tool_bins[i][1], tool_bins[i][0]).as_dict()
+                f"{i * BIN_TOKENS // 1000:03d}k": wilson(tool_bins[i][1], tool_bins[i][0]).as_dict()
                 for i in sorted(tool_bins)
                 if tool_bins[i][0] >= MIN_BIN_CALLS
             },
@@ -109,7 +111,7 @@ def analyze(corpus: Corpus) -> dict:
                 continue
             counts[call["name"] or "?"] = counts.get(call["name"] or "?", 0) + 1
         total = sum(counts.values())
-        composition[f"{index*BIN_TOKENS//1000:03d}k"] = {
+        composition[f"{index * BIN_TOKENS // 1000:03d}k"] = {
             name: round(100 * count / total, 1)
             for name, count in sorted(counts.items(), key=lambda kv: -kv[1])[:4]
         }
@@ -133,7 +135,9 @@ def analyze(corpus: Corpus) -> dict:
     compacts = [c for stream in corpus.streams.values() for c in stream.compacts]
     triggers: dict[str, int] = {}
     for compact in compacts:
-        triggers[compact.get("trigger") or "unknown"] = triggers.get(compact.get("trigger") or "unknown", 0) + 1
+        triggers[compact.get("trigger") or "unknown"] = (
+            triggers.get(compact.get("trigger") or "unknown", 0) + 1
+        )
 
     return {
         "calls_joined_to_context_size": len(all_calls) - unjoinable,
@@ -153,8 +157,8 @@ def analyze(corpus: Corpus) -> dict:
             "baseline_error_rate": wilson(baseline_err, len(all_calls)).as_dict(),
             "test": two_proportion_test(near_err, near_total, baseline_err, len(all_calls)),
             "power_warning": (
-                "Only %d compaction events exist corpus-wide. This comparison can rule out a "
-                "large effect and nothing smaller." % len(compacts)
+                f"Only {len(compacts)} compaction events exist corpus-wide. This comparison "
+                f"can rule out a large effect and nothing smaller."
             ),
         },
     }

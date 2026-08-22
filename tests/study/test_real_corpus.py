@@ -18,13 +18,11 @@ from pathlib import Path
 
 import pytest
 
-from agentfail import cli, loader
+from tracon.cli import main as tracon_main
+from tracon.study import cli, loader
 
 REAL_TRACE = Path(
-    os.environ.get(
-        "AGENTFAIL_REAL_TRACE",
-        "~/Personal/infinity/tracon/traces/export-2026-07-30",
-    )
+    os.environ.get("TRACON_STUDY_TRACE", "traces/export-2026-07-30"),
 ).expanduser()
 
 pytestmark = pytest.mark.slow
@@ -134,7 +132,11 @@ class TestConsistencyAcrossCliEntryPoints:
         if not _corpus_available():
             pytest.skip(_missing_reason)
         stored = tmp_path / "stored.json"
-        rc_write = cli.main(["report", "--trace", str(REAL_TRACE), "--json", str(stored)])
+        rc_write = tracon_main(
+            ["study", "report", "--trace", str(REAL_TRACE), "--json", str(stored)]
+        )
         assert rc_write == 0
-        rc_check = cli.main(["report", "--trace", str(REAL_TRACE), "--check", str(stored)])
+        rc_check = tracon_main(
+            ["study", "report", "--trace", str(REAL_TRACE), "--check", str(stored)]
+        )
         assert rc_check == 0  # the report is deterministic given the same export

@@ -18,9 +18,9 @@ import json
 
 import pytest
 
-from agentfail import loader
-from agentfail.adapters import openhands
-from agentfail.adapters._emit import ExportWriter, ShapeMode
+from tracon.study import loader
+from tracon.study.adapters import openhands
+from tracon.study.adapters._emit import ExportWriter, ShapeMode
 
 # --------------------------------------------------------------------------
 # Fixtures shaped exactly like the real corpus
@@ -70,7 +70,9 @@ def _model_response(
     }
 
 
-def bash_action(event_id, ts, command="ls -la", response_id="chatcmpl-1", call_id="toolu_1", **usage):
+def bash_action(
+    event_id, ts, command="ls -la", response_id="chatcmpl-1", call_id="toolu_1", **usage
+):
     return {
         "id": event_id,
         "timestamp": ts,
@@ -118,14 +120,18 @@ def editor_action(event_id, ts, code="print(file_editor(...))", call_id="toolu_2
         "tool_call_metadata": {
             "function_name": "str_replace_editor",
             "tool_call_id": call_id,
-            "model_response": _model_response("chatcmpl-2", call_id, "str_replace_editor", json.dumps({"code": code})),
+            "model_response": _model_response(
+                "chatcmpl-2", call_id, "str_replace_editor", json.dumps({"code": code})
+            ),
             "total_calls_in_response": 1,
         },
         "args": {"code": code, "thought": "...", "include_extra": False},
     }
 
 
-def editor_observation(event_id, ts, cause, content="File created successfully at: /workspace/x.py"):
+def editor_observation(
+    event_id, ts, cause, content="File created successfully at: /workspace/x.py"
+):
     return {
         "id": event_id,
         "timestamp": ts,
@@ -199,7 +205,10 @@ class TestFieldMapping:
         assert corpus.context_tokens(call) == 2333
 
     def test_stream_is_a_subagent_so_termination_analyses_apply(self, tmp_path):
-        _, corpus = convert_one(tmp_path, record([bash_action(3, T0), bash_observation(4, T1, 3), finish_action(29, T3)]))
+        _, corpus = convert_one(
+            tmp_path,
+            record([bash_action(3, T0), bash_observation(4, T1, 3), finish_action(29, T3)]),
+        )
         (stream,) = corpus.subagent_streams
         assert stream.is_subagent
         assert stream.end_status == "completed"
@@ -217,7 +226,9 @@ class TestErrorSignal:
         _, corpus = convert_one(
             tmp_path, record([bash_action(3, T0), bash_observation(4, T1, 3, exit_code=1)])
         )
-        assert corpus.streams[("run-under-test", "astropy__astropy-14182")].tool_calls[0]["is_error"]
+        assert corpus.streams[("run-under-test", "astropy__astropy-14182")].tool_calls[0][
+            "is_error"
+        ]
 
     def test_absent_exit_code_is_not_an_error(self, tmp_path):
         """21 of 3,587 real bash observations carry exit_code: null. Unknown is
@@ -225,7 +236,10 @@ class TestErrorSignal:
         obs = bash_observation(4, T1, 3)
         obs["extras"]["exit_code"] = None
         _, corpus = convert_one(tmp_path, record([bash_action(3, T0), obs]))
-        assert corpus.streams[("run-under-test", "astropy__astropy-14182")].tool_calls[0]["is_error"] is False
+        assert (
+            corpus.streams[("run-under-test", "astropy__astropy-14182")].tool_calls[0]["is_error"]
+            is False
+        )
 
     def test_editor_error_is_detected_by_content_prefix_and_counted(self, tmp_path):
         writer, corpus = convert_one(
@@ -247,7 +261,10 @@ class TestErrorSignal:
         writer, corpus = convert_one(
             tmp_path, record([editor_action(5, T0), editor_observation(6, T1, 5)])
         )
-        assert corpus.streams[("run-under-test", "astropy__astropy-14182")].tool_calls[0]["is_error"] is False
+        assert (
+            corpus.streams[("run-under-test", "astropy__astropy-14182")].tool_calls[0]["is_error"]
+            is False
+        )
         assert not [k for k in writer.counters if k.startswith("error_signal_")]
 
     def test_an_error_mentioned_mid_output_does_not_count(self, tmp_path):
@@ -255,9 +272,17 @@ class TestErrorSignal:
         is a successful tool call reporting a failing test."""
         _, corpus = convert_one(
             tmp_path,
-            record([editor_action(5, T0), editor_observation(6, T1, 5, content="ran tests\nERROR: 3 failed")]),
+            record(
+                [
+                    editor_action(5, T0),
+                    editor_observation(6, T1, 5, content="ran tests\nERROR: 3 failed"),
+                ]
+            ),
         )
-        assert corpus.streams[("run-under-test", "astropy__astropy-14182")].tool_calls[0]["is_error"] is False
+        assert (
+            corpus.streams[("run-under-test", "astropy__astropy-14182")].tool_calls[0]["is_error"]
+            is False
+        )
 
 
 class TestArgumentFingerprint:
@@ -267,7 +292,10 @@ class TestArgumentFingerprint:
         _, corpus = convert_one(
             tmp_path, record([bash_action(3, T0, command="ls"), bash_observation(4, T1, 3)])
         )
-        assert corpus.streams[("run-under-test", "astropy__astropy-14182")].tool_calls[0]["args_shape"] == "command:s2"
+        assert (
+            corpus.streams[("run-under-test", "astropy__astropy-14182")].tool_calls[0]["args_shape"]
+            == "command:s2"
+        )
 
     def test_two_identical_commands_share_a_shape_and_an_exact_signature(self, tmp_path):
         history = [
@@ -278,7 +306,10 @@ class TestArgumentFingerprint:
         ]
         for mode in (ShapeMode.SHAPE, ShapeMode.EXACT):
             _, corpus = convert_one(tmp_path / mode.value, record(history), shape_mode=mode)
-            shapes = [c["args_shape"] for c in corpus.streams[("run-under-test", "astropy__astropy-14182")].tool_calls]
+            shapes = [
+                c["args_shape"]
+                for c in corpus.streams[("run-under-test", "astropy__astropy-14182")].tool_calls
+            ]
             assert shapes[0] == shapes[1], mode
 
     def test_different_commands_of_equal_length_collide_under_shape_only(self, tmp_path):
@@ -303,7 +334,10 @@ class TestArgumentFingerprint:
         action["tool_call_metadata"]["model_response"]["choices"][0]["message"]["tool_calls"] = []
         _, corpus = convert_one(tmp_path, record([action, bash_observation(4, T1, 3)]))
         # 'command' survives; 'thought' and the harness flags do not
-        assert corpus.streams[("run-under-test", "astropy__astropy-14182")].tool_calls[0]["args_shape"] == "command:s6"
+        assert (
+            corpus.streams[("run-under-test", "astropy__astropy-14182")].tool_calls[0]["args_shape"]
+            == "command:s6"
+        )
 
     def test_arguments_are_matched_by_tool_call_id_not_by_position(self, tmp_path):
         action = bash_action(3, T0, command="ls -la", call_id="wanted")
@@ -312,13 +346,19 @@ class TestArgumentFingerprint:
             0,
             {
                 "index": 0,
-                "function": {"arguments": json.dumps({"command": "x" * 999}), "name": "execute_bash"},
+                "function": {
+                    "arguments": json.dumps({"command": "x" * 999}),
+                    "name": "execute_bash",
+                },
                 "id": "other",
                 "type": "function",
             },
         )
         _, corpus = convert_one(tmp_path, record([action, bash_observation(4, T1, 3)]))
-        assert corpus.streams[("run-under-test", "astropy__astropy-14182")].tool_calls[0]["args_shape"] == "command:s6"
+        assert (
+            corpus.streams[("run-under-test", "astropy__astropy-14182")].tool_calls[0]["args_shape"]
+            == "command:s6"
+        )
 
 
 class TestFinishIsNotAToolCall:
@@ -334,16 +374,24 @@ class TestFinishIsNotAToolCall:
         not as 'kept acting'."""
         writer, corpus = convert_one(
             tmp_path,
-            record([bash_action(3, T0), bash_observation(4, T1, 3, exit_code=1), finish_action(29, T3)]),
+            record(
+                [bash_action(3, T0), bash_observation(4, T1, 3, exit_code=1), finish_action(29, T3)]
+            ),
         )
-        from agentfail.analyses import errors
+        from tracon.study.analyses import errors
 
         result = errors.analyze(corpus)
         assert result["after_error_model_response"]["text_only_response"]["n"] == 1
         assert "kept_acting" not in result["after_error_model_response"]
 
     def test_the_task_prompt_is_not_counted_as_a_model_turn(self, tmp_path):
-        prompt = {"id": 0, "timestamp": T0, "source": "user", "action": "message", "args": {"content": "fix it"}}
+        prompt = {
+            "id": 0,
+            "timestamp": T0,
+            "source": "user",
+            "action": "message",
+            "args": {"content": "fix it"},
+        }
         writer, _ = convert_one(tmp_path, record([prompt, finish_action(29, T3)]))
         assert writer.counters.get("model_turn_message") is None
 
@@ -378,7 +426,9 @@ class TestUnmatchedAndOrphans:
 
     def test_an_orphan_observation_is_ignored_rather_than_invented_into_a_call(self, tmp_path):
         orphan = bash_observation(99, T1, cause=12345)
-        _, corpus = convert_one(tmp_path, record([bash_action(3, T0), bash_observation(4, T1, 3), orphan]))
+        _, corpus = convert_one(
+            tmp_path, record([bash_action(3, T0), bash_observation(4, T1, 3), orphan])
+        )
         assert len(corpus.subagent_streams[0].tool_calls) == 1
 
 
@@ -409,7 +459,11 @@ class TestConvertFile:
 
     def test_limit_per_file_truncates(self, tmp_path):
         src = tmp_path / "run.jsonl"
-        src.write_text("\n".join(json.dumps(record([finish_action(1, T0)], instance_id=f"i{i}")) for i in range(5)))
+        src.write_text(
+            "\n".join(
+                json.dumps(record([finish_action(1, T0)], instance_id=f"i{i}")) for i in range(5)
+            )
+        )
         corpus = loader.load(openhands.convert([src], tmp_path / "export", limit_per_file=2))
         assert len(corpus.subagent_streams) == 2
 
@@ -435,7 +489,13 @@ class TestOlderPairedHistory:
         assert calls[0]["duration_ms"] == 156
 
     def test_mixed_layouts_in_one_record_both_survive(self, tmp_path):
-        rec = record([[bash_action(3, T0), bash_observation(4, T1, 3)], editor_action(5, T2), editor_observation(6, T3, 5)])
+        rec = record(
+            [
+                [bash_action(3, T0), bash_observation(4, T1, 3)],
+                editor_action(5, T2),
+                editor_observation(6, T3, 5),
+            ]
+        )
         _, corpus = convert_one(tmp_path, rec)
         assert len(corpus.subagent_streams[0].tool_calls) == 2
 
@@ -445,10 +505,14 @@ class TestOlderPairedHistory:
             ("[File: /workspace/x.py (10 lines total)]", False, None),
             ("[File: /workspace/x.py (10 lines total after edit)]", False, None),
             ("[No exact match found in /workspace/x.py for ...]", True, "editor_no_exact_match"),
-            ("[Your proposed edit has introduced new syntax error(s).", True, "editor_syntax_error"),
+            (
+                "[Your proposed edit has introduced new syntax error(s).",
+                True,
+                "editor_syntax_error",
+            ),
             ("ERROR: File /workspace/x.py not found.", True, "editor_ERROR_prefix"),
             ("[Code executed successfully with no output]", False, None),
-            ("[Found 2 matches for \"models.py\" in /workspace]", False, None),
+            ('[Found 2 matches for "models.py" in /workspace]', False, None),
             ("Cell In[1], line 3\n  bad syntax", True, "cell_traceback"),
         ],
     )
@@ -475,7 +539,10 @@ class TestOlderPairedHistory:
 
     def test_an_action_with_no_tool_metadata_at_all_still_becomes_a_call(self, tmp_path):
         action = {
-            "id": 3, "timestamp": T0, "source": "agent", "action": "run",
+            "id": 3,
+            "timestamp": T0,
+            "source": "agent",
+            "action": "run",
             "args": {"command": "ls -la", "thought": "...", "blocking": False},
         }
         _, corpus = convert_one(tmp_path, record([[action, bash_observation(4, T1, 3)]]))
@@ -496,7 +563,7 @@ class TestModelTurnsWithoutTokenAccounting:
         return action
 
     def test_the_turn_is_emitted_and_counts_as_tool_use(self, tmp_path):
-        from agentfail.analyses import errors
+        from tracon.study.analyses import errors
 
         rec = record(
             [
@@ -510,7 +577,7 @@ class TestModelTurnsWithoutTokenAccounting:
         assert writer.counters["call_without_token_usage"] == 2
 
     def test_but_the_call_stays_out_of_the_context_analysis(self, tmp_path):
-        from agentfail.analyses import context
+        from tracon.study.analyses import context
 
         rec = record([[self._untokened(3, T0), bash_observation(4, T1, 3)]])
         _, corpus = convert_one(tmp_path, rec)
@@ -524,7 +591,14 @@ class TestOnlyActionsFilter:
         src = tmp_path / "run.jsonl"
         src.write_text(
             json.dumps(
-                record([bash_action(3, T0), bash_observation(4, T1, 3), editor_action(5, T2), editor_observation(6, T3, 5)])
+                record(
+                    [
+                        bash_action(3, T0),
+                        bash_observation(4, T1, 3),
+                        editor_action(5, T2),
+                        editor_observation(6, T3, 5),
+                    ]
+                )
             )
         )
         corpus = loader.load(openhands.convert([src], tmp_path / "export", only_actions={"run"}))
@@ -536,6 +610,17 @@ class TestOnlyActionsFilter:
 
     def test_unfiltered_by_default(self, tmp_path):
         src = tmp_path / "run.jsonl"
-        src.write_text(json.dumps(record([bash_action(3, T0), bash_observation(4, T1, 3), editor_action(5, T2), editor_observation(6, T3, 5)])))
+        src.write_text(
+            json.dumps(
+                record(
+                    [
+                        bash_action(3, T0),
+                        bash_observation(4, T1, 3),
+                        editor_action(5, T2),
+                        editor_observation(6, T3, 5),
+                    ]
+                )
+            )
+        )
         corpus = loader.load(openhands.convert([src], tmp_path / "export"))
         assert len(corpus.subagent_streams[0].tool_calls) == 2

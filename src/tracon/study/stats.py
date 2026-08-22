@@ -39,7 +39,10 @@ class Rate:
         }
 
     def __str__(self) -> str:
-        return f"{self.pct:.2f}% [{100*self.lo:.2f}–{100*self.hi:.2f}] (n={self.numerator}/{self.denominator})"
+        return (
+            f"{self.pct:.2f}% [{100 * self.lo:.2f}–{100 * self.hi:.2f}] "
+            f"(n={self.numerator}/{self.denominator})"
+        )
 
 
 def wilson(numerator: int, denominator: int, z: float = Z95) -> Rate:
@@ -114,6 +117,6 @@ def quantiles(values: list[float], points: tuple[float, ...] = (0.5, 0.9, 0.95, 
     out = {}
     for q in points:
         idx = min(len(ordered) - 1, max(0, math.ceil(q * len(ordered)) - 1))
-        out[f"p{int(q*100)}"] = ordered[idx]
+        out[f"p{int(q * 100)}"] = ordered[idx]
     out["max"] = ordered[-1]
     return out

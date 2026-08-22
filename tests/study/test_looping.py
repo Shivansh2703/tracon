@@ -1,4 +1,4 @@
-"""Tests for agentfail.analyses.looping — the most load-bearing module.
+"""Tests for tracon.study.analyses.looping — the most load-bearing module.
 
 Every corpus here is built so the "right answer" (run counts, run lengths,
 stream boundaries, bound ordering) is known before the code runs.
@@ -6,9 +6,10 @@ stream boundaries, bound ordering) is known before the code runs.
 
 from __future__ import annotations
 
-from agentfail import loader
-from agentfail.analyses import looping
-from conftest import build_export, make_session, make_tool_call
+from conftest import build_export
+
+from tracon.study import loader
+from tracon.study.analyses import looping
 
 
 def _call(name="Bash", args_shape="command:s10", result_chars=100, is_error=False, **kw):

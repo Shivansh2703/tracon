@@ -2,7 +2,7 @@
 
 Every analysis test constructs a tiny export whose right answer is known by
 construction (a handful of events.jsonl lines + a manifest.json), loads it
-with ``agentfail.loader.load``, and asserts on the exact numbers that follow.
+with ``tracon.study.loader.load``, and asserts on the exact numbers that follow.
 
 Two layers:
 
@@ -168,7 +168,9 @@ def write_export(directory: Path, events: list[dict], manifest: dict | None = No
     return directory
 
 
-def build_export(tmp_path: Path, streams: list[dict], manifest: dict | None = None, name: str = "export") -> Path:
+def build_export(
+    tmp_path: Path, streams: list[dict], manifest: dict | None = None, name: str = "export"
+) -> Path:
     """Ergonomic stream-shaped corpus builder.
 
     ``streams`` is a list of::
@@ -230,8 +232,10 @@ def build_export(tmp_path: Path, streams: list[dict], manifest: dict | None = No
             else:
                 tool_ev["api_uuid"] = explicit_api_uuid
             events.append(tool_ev)
-        for compact_spec in spec.get("compacts", []):
-            events.append(make_compact(session, agent, **compact_spec))
+        events.extend(
+            make_compact(session, agent, **compact_spec)
+            for compact_spec in spec.get("compacts", [])
+        )
     return write_export(tmp_path / name, events, manifest)
 
 

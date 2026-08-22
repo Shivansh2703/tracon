@@ -21,8 +21,8 @@ from __future__ import annotations
 
 from collections import Counter, defaultdict
 
-from ..loader import Corpus
-from ..stats import quantiles, wilson
+from tracon.study.loader import Corpus
+from tracon.study.stats import quantiles, wilson
 
 HUMAN_WAIT_TOOLS = {"AskUserQuestion", "ExitPlanMode"}
 AGENT_WAIT_TOOLS = {"Agent", "Monitor", "TaskStop", "SendMessage"}
@@ -53,7 +53,7 @@ def analyze(corpus: Corpus) -> dict:
         ms_by_class: dict[str, int] = defaultdict(int)
         for call in above:
             ms_by_class[classify(call)] += call["duration_ms"]
-        tiers[f"ge_{threshold//1000}s"] = {
+        tiers[f"ge_{threshold // 1000}s"] = {
             "calls": len(above),
             "share_of_calls": wilson(len(above), len(timed)).as_dict(),
             "share_of_tool_time_pct": round(100 * above_ms / total_ms, 2) if total_ms else 0.0,
@@ -61,7 +61,8 @@ def analyze(corpus: Corpus) -> dict:
                 k: wilson(v, len(above)).as_dict() for k, v in buckets.most_common()
             },
             "composition_by_time_pct": {
-                k: round(100 * v / above_ms, 2) for k, v in sorted(ms_by_class.items(), key=lambda kv: -kv[1])
+                k: round(100 * v / above_ms, 2)
+                for k, v in sorted(ms_by_class.items(), key=lambda kv: -kv[1])
             },
             "by_tool": Counter(c["name"] for c in above).most_common(8),
         }
@@ -85,7 +86,9 @@ def analyze(corpus: Corpus) -> dict:
             for c in extremes
         ],
         "never_returned": {
-            "definition": "tool_use with no tool_result on disk — the stream died with the call in flight",
+            "definition": (
+                "tool_use with no tool_result on disk — the stream died with the call in flight"
+            ),
             "count": sum(1 for c in corpus.tool_calls if c["status"] == "unmatched"),
             "rate": wilson(
                 sum(1 for c in corpus.tool_calls if c["status"] == "unmatched"),

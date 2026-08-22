@@ -13,15 +13,15 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 
-
 # --------------------------------------------------------------------------
 # Argument fingerprint
 # --------------------------------------------------------------------------
-# Reproduced from tracon/src/tracon/trace/privacy.py so that repeat-run
-# detection on a public corpus is defined identically to the study's. Vendored
-# rather than imported: agentfail must not depend on tracon being installed,
-# and a silent upstream change to the fingerprint would silently move the
-# comparison. tests/test_adapters_emit.py pins the format.
+# Reproduced from tracon/trace/privacy.py so that repeat-run detection on a
+# public corpus is defined identically to the study's. Kept as a copy rather
+# than an import: a silent upstream change to the exporter's fingerprint would
+# silently move a published comparison, and the study's numbers must stay
+# reproducible against the corpus they were computed on.
+# tests/study/test_adapters_emit.py pins the format.
 
 
 def _type_code(value: object) -> str:

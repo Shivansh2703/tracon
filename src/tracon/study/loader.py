@@ -3,7 +3,7 @@
 The export is one JSON object per line with an ``ev`` discriminator (see
 tracon's ``src/tracon/trace/schema.py``). This module is deliberately dumb: it
 reads, groups, and sorts. Every judgement about what an event *means* lives in
-``agentfail.analyses`` so it can be tested in isolation.
+``tracon.study.analyses`` so it can be tested in isolation.
 
 A **stream** is the unit of agentic execution: one main session, or one
 subagent run. It is keyed ``(session_uuid, agent_id_or_None)``. Analyses run
@@ -14,10 +14,9 @@ parent's — merging them would manufacture repeats that never happened.
 from __future__ import annotations
 
 import json
-from collections import defaultdict
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Iterator
 
 StreamKey = tuple[str, str | None]
 

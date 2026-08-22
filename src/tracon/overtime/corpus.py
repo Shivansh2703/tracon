@@ -40,9 +40,9 @@ def _sub_count(d: dict, key: str, total_key: str, total: int) -> int:
 def _quantile(values: list[float], p: float) -> float:
     """Quantile, pinned verbatim to tracon doctor's ``_q`` (src/tracon/doctor.py:57).
 
-    Not the nearest-rank definition agentfail's ``stats.quantiles()`` uses (``ceil(q*n)-1``) —
-    doctor and agent-obs report on the same corpora side by side, so they must agree on p95 to
-    the last digit or the suite quietly contradicts itself.
+    Not the nearest-rank definition ``study.stats.quantiles()`` uses (``ceil(q*n)-1``) —
+    ``doctor`` and ``over-time`` report on the same corpora side by side, so they must agree on
+    p95 to the last digit or the tool quietly contradicts itself.
     """
     if not values:
         return 0.0
@@ -72,9 +72,7 @@ class AgentTypeStats:
     @property
     def unaccounted_resolvable_rate(self) -> float | None:
         """None (render as n/a) when every run in this row is unresolvable."""
-        return (
-            self.unaccounted_resolvable / self.resolvable_runs if self.resolvable_runs else None
-        )
+        return self.unaccounted_resolvable / self.resolvable_runs if self.resolvable_runs else None
 
     def to_dict(self) -> dict:
         return {
@@ -144,9 +142,7 @@ class Snapshot:
         """None (render as n/a) when there are no resolvable agents to rate — same contract as
         AgentTypeStats.unaccounted_resolvable_rate."""
         return (
-            self.unaccounted_resolvable / self.resolvable_agents
-            if self.resolvable_agents
-            else None
+            self.unaccounted_resolvable / self.resolvable_agents if self.resolvable_agents else None
         )
 
     @property

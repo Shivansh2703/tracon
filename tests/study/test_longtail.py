@@ -1,11 +1,12 @@
-"""Tests for agentfail.analyses.longtail: classify() precedence, tier
+"""Tests for tracon.study.analyses.longtail: classify() precedence, tier
 thresholds at the boundary, and the never_returned proxy."""
 
 from __future__ import annotations
 
-from agentfail import loader
-from agentfail.analyses import longtail
 from conftest import build_export
+
+from tracon.study import loader
+from tracon.study.analyses import longtail
 
 
 def _call(name="Bash", is_error=False, duration_ms=1000, background=False, **kw):

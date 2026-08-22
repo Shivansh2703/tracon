@@ -19,8 +19,8 @@ from __future__ import annotations
 
 from collections import Counter
 
-from ..loader import Corpus
-from ..stats import quantiles, two_proportion_test, wilson
+from tracon.study.loader import Corpus
+from tracon.study.stats import quantiles, two_proportion_test, wilson
 
 THIN_EVIDENCE_MAX_CALLS = 2
 
@@ -31,9 +31,7 @@ def analyze(corpus: Corpus) -> dict:
     total = len(subs)
 
     # Recovery: after a run's first error, did it go on to finish?
-    with_error = [
-        s for s in subs if any(c["is_error"] for c in s.tool_calls)
-    ]
+    with_error = [s for s in subs if any(c["is_error"] for c in s.tool_calls)]
     recovered = sum(1 for s in with_error if s.end_status == "completed")
     clean = [s for s in subs if s.tool_calls and not any(c["is_error"] for c in s.tool_calls)]
     clean_completed = sum(1 for s in clean if s.end_status == "completed")
@@ -78,8 +76,10 @@ def analyze(corpus: Corpus) -> dict:
                     clean_completed, sum(1 for s in clean if s.end_status != "unknown")
                 ).as_dict(),
                 "test": two_proportion_test(
-                    recovered, sum(1 for s in with_error if s.end_status != "unknown"),
-                    clean_completed, sum(1 for s in clean if s.end_status != "unknown"),
+                    recovered,
+                    sum(1 for s in with_error if s.end_status != "unknown"),
+                    clean_completed,
+                    sum(1 for s in clean if s.end_status != "unknown"),
                 ),
             },
             "unknown_status_share": {
@@ -92,7 +92,8 @@ def analyze(corpus: Corpus) -> dict:
             },
             "note": (
                 "A completed status is the parent's report that the run finished, not a verdict "
-                "that its work was correct. Read this as 'did the run survive', not 'did it succeed'."
+                "that its work was correct. Read this as 'did the run survive', not "
+                "'did it succeed'."
             ),
         },
         "hard_failures": {
@@ -114,12 +115,13 @@ def analyze(corpus: Corpus) -> dict:
                 "definition": f"end_status=completed with <= {THIN_EVIDENCE_MAX_CALLS} tool calls",
                 "rate": wilson(thin, len(completed)).as_dict(),
                 "completed_runs_by_tool_call_count": dict(call_counts.most_common()),
-                "caveat": "A small task legitimately needs few calls. This bounds suspicion, not error.",
+                "caveat": (
+                    "A small task legitimately needs few calls. "
+                    "This bounds suspicion, not error."
+                ),
             },
         },
         "run_length": {
-            "tool_calls_per_subagent_run": quantiles(
-                [float(len(s.tool_calls)) for s in subs]
-            ),
+            "tool_calls_per_subagent_run": quantiles([float(len(s.tool_calls)) for s in subs]),
         },
     }

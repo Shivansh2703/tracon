@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import pytest
 
-from agent_obs.corpus import AgentTypeStats, Snapshot
-from agent_obs.track import build_timeline, render_timeline
+from tracon.overtime.corpus import AgentTypeStats, Snapshot
+from tracon.overtime.track import build_timeline, render_timeline
 
 
 def _snap(
@@ -89,9 +89,7 @@ def test_fully_unresolvable_row_renders_as_na_not_100_percent() -> None:
         longtail_share_60s=0.0,
         tokens={"in": 0, "out": 0, "cache_read": 0, "cache_create": 0},
         cache_read_share_p50=0.0,
-        by_agent_type={
-            "workflow-subagent": AgentTypeStats(runs=1, unaccounted=1, unresolvable=1)
-        },
+        by_agent_type={"workflow-subagent": AgentTypeStats(runs=1, unaccounted=1, unresolvable=1)},
     )
     timeline = build_timeline([snap])
     rendered = render_timeline(timeline)

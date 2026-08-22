@@ -1,12 +1,10 @@
-"""Hand-checked tests for agentfail.stats — no corpus needed."""
+"""Hand-checked tests for tracon.study.stats — no corpus needed."""
 
 from __future__ import annotations
 
-import math
-
 import pytest
 
-from agentfail.stats import cochran_armitage_trend, quantiles, two_proportion_test, wilson
+from tracon.study.stats import cochran_armitage_trend, quantiles, two_proportion_test, wilson
 
 
 class TestWilson:

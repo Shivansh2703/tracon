@@ -14,8 +14,8 @@ from __future__ import annotations
 
 from collections import Counter
 
-from ..loader import Corpus
-from ..stats import two_proportion_test, wilson
+from tracon.study.loader import Corpus
+from tracon.study.stats import two_proportion_test, wilson
 
 # An error "looks resolved" if the same tool later succeeds in the same stream.
 # Crude: a later successful Bash call is not necessarily the same command
@@ -104,7 +104,9 @@ def analyze(corpus: Corpus) -> dict:
             "errored tool call never followed by a success of the same tool in that stream"
         ),
         "rate": wilson(unresolved_by_status.get("completed", 0), completed).as_dict(),
-        "final_call_errored_rate": wilson(last_call_errored.get("completed", 0), completed).as_dict(),
+        "final_call_errored_rate": wilson(
+            last_call_errored.get("completed", 0), completed
+        ).as_dict(),
         "by_end_status": {
             status: wilson(unresolved_by_status.get(status, 0), total).as_dict()
             for status, total in status_totals.most_common()
@@ -125,8 +127,10 @@ def analyze(corpus: Corpus) -> dict:
         "ge_60s": wilson(sum(1 for c in long_calls if c["is_error"]), len(long_calls)).as_dict(),
         "lt_60s": wilson(sum(1 for c in short_calls if c["is_error"]), len(short_calls)).as_dict(),
         "test": two_proportion_test(
-            sum(1 for c in long_calls if c["is_error"]), len(long_calls),
-            sum(1 for c in short_calls if c["is_error"]), len(short_calls),
+            sum(1 for c in long_calls if c["is_error"]),
+            len(long_calls),
+            sum(1 for c in short_calls if c["is_error"]),
+            len(short_calls),
         ),
     }
     return out

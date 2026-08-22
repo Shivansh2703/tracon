@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from agent_obs.corpus import Snapshot
-from agent_obs.stats import two_proportion_test, wilson
+from tracon.overtime.corpus import Snapshot
+from tracon.study.stats import two_proportion_test, wilson
 
 # metric key -> (numerator attr, denominator attr)
 # `unaccounted_rate` is deliberately NOT gated here — see the raw-rate note in render_check.
@@ -179,8 +179,7 @@ def render_check(regressions: list[Regression], baseline: Snapshot, current: Sna
         "had a way to capture, alongside runs that may be genuinely unaccounted."
     )
     lines.append(
-        "Not gated (reported only — direction is not obviously bad): "
-        + ", ".join(_UNGATED_METRICS)
+        "Not gated (reported only — direction is not obviously bad): " + ", ".join(_UNGATED_METRICS)
     )
     lines.append("")
     return "\n".join(lines)

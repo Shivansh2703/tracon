@@ -71,7 +71,7 @@ from collections.abc import Iterable, Iterator
 from datetime import datetime
 from pathlib import Path
 
-from ._emit import ExportWriter, ShapeMode
+from tracon.study.adapters._emit import ExportWriter, ShapeMode
 
 #: Actions that represent a real tool invocation with an observable result.
 TOOL_ACTIONS = {"run", "run_ipython", "edit", "browse", "browse_interactive", "read", "write"}
@@ -183,7 +183,7 @@ def is_error(observation: dict) -> bool:
     return error_signal(observation)[0]
 
 
-def end_status(record: dict, saw_finish: bool) -> str:
+def end_status(record: dict, *, saw_finish: bool) -> str:
     """See judgement 4 in the module docstring."""
     if record.get("error"):
         return "failed"
@@ -211,7 +211,12 @@ def _usage(action: dict) -> tuple[str | None, dict, str | None, int]:
             "cache_read": cache_read,
             "cache_create": cache_create,
         }
-    return response.get("id"), split, response.get("model"), meta.get("total_calls_in_response") or 0
+    return (
+        response.get("id"),
+        split,
+        response.get("model"),
+        meta.get("total_calls_in_response") or 0,
+    )
 
 
 def flatten_history(history: object) -> list[dict]:
@@ -274,8 +279,13 @@ def convert_record(
             # agent stopping, so it must not read as "kept acting".
             uuid = f"{instance}:turn:{event.get('id')}"
             writer.api_call(
-                session, instance, uuid=uuid, ts=ts, model=model,
-                tool_use_blocks=0, **usage_split,
+                session,
+                instance,
+                uuid=uuid,
+                ts=ts,
+                model=model,
+                tool_use_blocks=0,
+                **usage_split,
             )
             writer.bump(f"model_turn_{action}")
             continue
@@ -295,8 +305,13 @@ def convert_record(
             if api_uuid not in emitted_api:
                 emitted_api.add(api_uuid)
                 writer.api_call(
-                    session, instance, uuid=api_uuid, ts=ts, model=model,
-                    tool_use_blocks=tool_use_blocks or 1, **usage_split,
+                    session,
+                    instance,
+                    uuid=api_uuid,
+                    ts=ts,
+                    model=model,
+                    tool_use_blocks=tool_use_blocks or 1,
+                    **usage_split,
                 )
         else:
             # No usage block — either an older run with no per-call token
@@ -306,11 +321,17 @@ def convert_record(
             # otherwise read as "no further model call" for eight of the
             # thirteen runs. The tool call is left unjoined, so the *context*
             # question correctly reports those calls as unjoinable.
-            uuid = f"{instance}:{response_id}" if response_id else f"{instance}:turn:{event.get('id')}"
+            uuid = (
+                f"{instance}:{response_id}" if response_id else f"{instance}:turn:{event.get('id')}"
+            )
             if uuid not in emitted_api:
                 emitted_api.add(uuid)
                 writer.api_call(
-                    session, instance, uuid=uuid, ts=ts, model=model,
+                    session,
+                    instance,
+                    uuid=uuid,
+                    ts=ts,
+                    model=model,
                     tool_use_blocks=tool_use_blocks or 1,
                 )
             writer.bump("call_without_token_usage")
@@ -318,13 +339,17 @@ def convert_record(
         observation = observations_by_cause.get(event.get("id"))
         if observation is None:
             writer.tool_call(
-                session, instance,
+                session,
+                instance,
                 id=f"{instance}:{event.get('id')}",
                 name=action,
                 function_name=meta.get("function_name"),
                 args=tool_arguments(event),
-                ts=ts, ts_result=None, duration_ms=None,
-                api_uuid=api_uuid, status="unmatched",
+                ts=ts,
+                ts_result=None,
+                duration_ms=None,
+                api_uuid=api_uuid,
+                status="unmatched",
             )
             writer.bump("unmatched_tool_call")
             continue
@@ -339,12 +364,15 @@ def convert_record(
         if signal:
             writer.bump(f"error_signal_{signal}" if errored else f"signal_{signal}")
         writer.tool_call(
-            session, instance,
+            session,
+            instance,
             id=f"{instance}:{event.get('id')}",
             name=action,
             function_name=meta.get("function_name"),
             args=tool_arguments(event),
-            ts=ts, ts_result=ts_result, duration_ms=duration,
+            ts=ts,
+            ts_result=ts_result,
+            duration_ms=duration,
             is_error=errored,
             result_chars=len(observation.get("content") or ""),
             api_uuid=api_uuid,
@@ -352,11 +380,12 @@ def convert_record(
 
     report = record.get("report") or {}
     writer.session(
-        session, instance,
+        session,
+        instance,
         t_start=min(stamps) if stamps else None,
         t_end=max(stamps) if stamps else None,
         project=session,
-        end_status=end_status(record, saw_finish),
+        end_status=end_status(record, saw_finish=saw_finish),
         agent_type=model_name,
         resolved=report.get("resolved"),
         harness_error=record.get("error"),

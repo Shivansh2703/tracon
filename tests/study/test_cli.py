@@ -1,4 +1,4 @@
-"""Tests for agentfail.cli: run() subsetting, unknown analysis, main()'s
+"""Tests for tracon.study.cli: run() subsetting, unknown analysis, main()'s
 --json write, and --check drift detection. All against a synthetic corpus —
 never the real one."""
 
@@ -7,15 +7,28 @@ from __future__ import annotations
 import json
 
 import pytest
-
-from agentfail import cli
 from conftest import build_export
+
+from tracon.cli import main as tracon_main
+from tracon.study import cli
 
 
 def _make_export(tmp_path):
     calls = [
-        {"name": "Bash", "args_shape": "command:s10", "is_error": False, "duration_ms": 1000, "result_chars": 20},
-        {"name": "Bash", "args_shape": "command:s10", "is_error": True, "duration_ms": 2000, "result_chars": 5},
+        {
+            "name": "Bash",
+            "args_shape": "command:s10",
+            "is_error": False,
+            "duration_ms": 1000,
+            "result_chars": 20,
+        },
+        {
+            "name": "Bash",
+            "args_shape": "command:s10",
+            "is_error": True,
+            "duration_ms": 2000,
+            "result_chars": 5,
+        },
     ]
     return build_export(
         tmp_path,
@@ -53,7 +66,7 @@ class TestMain:
     def test_main_writes_json_file_and_returns_zero(self, tmp_path):
         export = _make_export(tmp_path)
         out_json = tmp_path / "out" / "result.json"
-        rc = cli.main(["report", "--trace", str(export), "--json", str(out_json)])
+        rc = tracon_main(["study", "report", "--trace", str(export), "--json", str(out_json)])
         assert rc == 0
         assert out_json.exists()
         data = json.loads(out_json.read_text())
@@ -65,7 +78,7 @@ class TestMain:
         result = cli.run(export)
         stored.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")
 
-        rc = cli.main(["report", "--trace", str(export), "--check", str(stored)])
+        rc = tracon_main(["study", "report", "--trace", str(export), "--check", str(stored)])
         assert rc == 0
         out = capsys.readouterr().out
         assert "matches" in out
@@ -75,7 +88,7 @@ class TestMain:
         stored = tmp_path / "stored.json"
         stored.write_text(json.dumps({"drifted": True}))
 
-        rc = cli.main(["report", "--trace", str(export), "--check", str(stored)])
+        rc = tracon_main(["study", "report", "--trace", str(export), "--check", str(stored)])
         assert rc == 1
         err = capsys.readouterr().err
         assert "DRIFT" in err
@@ -83,8 +96,8 @@ class TestMain:
     def test_main_only_flag_restricts_output(self, tmp_path):
         export = _make_export(tmp_path)
         out_json = tmp_path / "out2" / "result.json"
-        rc = cli.main(
-            ["report", "--trace", str(export), "--only", "corpus", "--json", str(out_json)]
+        rc = tracon_main(
+            ["study", "report", "--trace", str(export), "--only", "corpus", "--json", str(out_json)]
         )
         assert rc == 0
         data = json.loads(out_json.read_text())

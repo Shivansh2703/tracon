@@ -1,1 +1,1 @@
-__version__ = "0.1.0"
+"""tracon study — why agent runs fail, measured on real trace exports."""

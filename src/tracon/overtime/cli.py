@@ -1,4 +1,4 @@
-"""``python -m agent_obs`` — track fleet movement across trace exports and gate on it."""
+"""``tracon over-time`` — is the fleet getting worse, and which seat is responsible."""
 
 from __future__ import annotations
 
@@ -7,9 +7,9 @@ import json
 import sys
 from pathlib import Path
 
-from agent_obs.corpus import Snapshot, read_snapshot
-from agent_obs.gate import check, render_check
-from agent_obs.track import build_timeline, render_timeline
+from tracon.overtime.corpus import Snapshot, read_snapshot
+from tracon.overtime.gate import check, render_check
+from tracon.overtime.track import build_timeline, render_timeline
 
 
 class UsageError(Exception):
@@ -80,34 +80,32 @@ def _cmd_check(args: argparse.Namespace) -> int:
     return 1 if regressions else 0
 
 
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="agent-obs")
-    sub = parser.add_subparsers(dest="command", required=True)
+def add_subcommand(sub: argparse._SubParsersAction) -> None:
+    parser = sub.add_parser(
+        "over-time",
+        help="is the fleet getting worse — movement across exports, and a gate",
+    )
+    inner = parser.add_subparsers(dest="over_time_command", required=True)
 
-    track_p = sub.add_parser("track", help="report fleet movement across N snapshots")
+    track_p = inner.add_parser("track", help="report fleet movement across N snapshots")
     track_p.add_argument("paths", nargs="+", help="export directories or snapshot/track JSON files")
     track_p.add_argument("--json", help="write {snapshots, timeline} to this path")
-    track_p.set_defaults(func=_cmd_track)
+    track_p.set_defaults(over_time_func=_cmd_track)
 
-    check_p = sub.add_parser("check", help="gate the current snapshot against a baseline")
+    check_p = inner.add_parser("check", help="gate the current snapshot against a baseline")
     check_p.add_argument("path", help="export directory or snapshot/track JSON file")
     check_p.add_argument("--baseline", required=True, help="baseline snapshot or track JSON file")
     check_p.add_argument("--tolerance", type=float, default=0.10)
     check_p.add_argument("--json", help="write the regression report to this path")
-    check_p.set_defaults(func=_cmd_check)
+    check_p.set_defaults(over_time_func=_cmd_check)
 
-    return parser
+    parser.set_defaults(func=execute)
 
 
-def main(argv: list[str] | None = None) -> int:
-    parser = build_parser()
-    args = parser.parse_args(argv)
+def execute(args: argparse.Namespace) -> int:
+    """A bad path or a hand-edited baseline is a user error, not a traceback: exit 2."""
     try:
-        return args.func(args)
+        return args.over_time_func(args)
     except UsageError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
-
-
-if __name__ == "__main__":
-    sys.exit(main())

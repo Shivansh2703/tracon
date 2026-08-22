@@ -1,5 +1,3 @@
-"""agent_obs — fleet-over-time view for agent trace exports."""
+"""tracon over-time — is the fleet getting worse, and which seat is responsible."""
 
 from __future__ import annotations
-
-__version__ = "0.1.0"

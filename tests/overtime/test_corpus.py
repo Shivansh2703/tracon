@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from agent_obs.corpus import Snapshot, read_snapshot
+from tracon.overtime.corpus import Snapshot, read_snapshot
 
 
 def _write_export(tmp_path: Path, lines: list[dict], manifest: dict | None = None) -> Path:

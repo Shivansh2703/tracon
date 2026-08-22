@@ -1,11 +1,12 @@
-"""Tests for agentfail.analyses.errors: after-error classification and the
+"""Tests for tracon.study.analyses.errors: after-error classification and the
 declared_complete_with_unresolved_error proxy."""
 
 from __future__ import annotations
 
-from agentfail import loader
-from agentfail.analyses import errors
 from conftest import build_export
+
+from tracon.study import loader
+from tracon.study.analyses import errors
 
 
 def _call(name="Bash", args_shape="command:s10", is_error=False, **kw):
@@ -118,8 +119,18 @@ class TestDeclaredCompleteWithUnresolvedError:
         export = build_export(
             tmp_path,
             [
-                {"session": "s1", "agent": "sub-a", "end_status": "completed", "calls": completed_ok},
-                {"session": "s1", "agent": "sub-b", "end_status": "failed", "calls": failed_with_error},
+                {
+                    "session": "s1",
+                    "agent": "sub-a",
+                    "end_status": "completed",
+                    "calls": completed_ok,
+                },
+                {
+                    "session": "s1",
+                    "agent": "sub-b",
+                    "end_status": "failed",
+                    "calls": failed_with_error,
+                },
             ],
         )
         corpus = loader.load(export)

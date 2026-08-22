@@ -1,13 +1,13 @@
-"""Tests for agentfail.loader: stream keying, sort order, and error paths."""
+"""Tests for tracon.study.loader: stream keying, sort order, and error paths."""
 
 from __future__ import annotations
 
 import json
 
 import pytest
-
-from agentfail import loader
 from conftest import make_api_call, make_compact, make_session, make_tool_call
+
+from tracon.study import loader
 
 
 def test_streams_keyed_by_session_and_agent(export_dir):

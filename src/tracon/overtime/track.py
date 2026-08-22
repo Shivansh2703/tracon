@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from agent_obs.corpus import Snapshot
+from tracon.overtime.corpus import Snapshot
 
 # key, display name, unit, higher_is_worse
 _WATCHED: tuple[tuple[str, str, str, bool], ...] = (
@@ -40,10 +40,13 @@ def _sort_key(snapshot: Snapshot, order: int) -> tuple[bool, datetime | float, i
 
 
 def build_timeline(snapshots: list[Snapshot]) -> dict:
-    ordered = [s for _, s in sorted(
-        ((_sort_key(s, i), s) for i, s in enumerate(snapshots)),
-        key=lambda pair: pair[0],
-    )]
+    ordered = [
+        s
+        for _, s in sorted(
+            ((_sort_key(s, i), s) for i, s in enumerate(snapshots)),
+            key=lambda pair: pair[0],
+        )
+    ]
 
     labels = [s.label for s in ordered]
     metrics: dict[str, Any] = {}
@@ -147,9 +150,7 @@ def _render_by_agent_type(by_type: dict[str, dict]) -> list[str]:
     for name, stats in ranked:
         resolvable = stats["resolvable_runs"]
         resolvable_unaccounted = stats["unaccounted_resolvable"]
-        rate_str = (
-            f"{100 * resolvable_unaccounted / resolvable:.2f}%" if resolvable else "n/a"
-        )
+        rate_str = f"{100 * resolvable_unaccounted / resolvable:.2f}%" if resolvable else "n/a"
         tool_min = stats["tool_ms"] / 60_000
         lines.append(
             f"| {name} | {stats['runs']} | {stats['unaccounted']} | {stats['unresolvable']} | "

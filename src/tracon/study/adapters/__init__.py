@@ -1,8 +1,8 @@
 """Adapters: map a public agent-trajectory corpus into the study's own schema.
 
 The point of this package is *not* to write a second analysis. It is to make
-foreign data readable by ``agentfail.loader`` so that the identical code in
-``agentfail.analyses`` runs over it. Every adapter's only job is to emit an
+foreign data readable by ``tracon.study.loader`` so that the identical code in
+``tracon.study.analyses`` runs over it. Every adapter's only job is to emit an
 ``events.jsonl`` + ``manifest.json`` pair that the existing loader accepts.
 
 Two rules every adapter here obeys:
@@ -24,7 +24,7 @@ Two rules every adapter here obeys:
 
 from __future__ import annotations
 
-from ._emit import ExportWriter, ShapeMode, exact_signature, shape
+from tracon.study.adapters._emit import ExportWriter, ShapeMode, exact_signature, shape
 
 REGISTRY: dict[str, str] = {}
 
@@ -33,7 +33,7 @@ def register(name: str, module: str) -> None:
     REGISTRY[name] = module
 
 
-register("sweagent", "agentfail.adapters.sweagent")
-register("openhands", "agentfail.adapters.openhands")
+register("sweagent", "tracon.study.adapters.sweagent")
+register("openhands", "tracon.study.adapters.openhands")
 
-__all__ = ["ExportWriter", "ShapeMode", "exact_signature", "shape", "REGISTRY", "register"]
+__all__ = ["REGISTRY", "ExportWriter", "ShapeMode", "exact_signature", "register", "shape"]

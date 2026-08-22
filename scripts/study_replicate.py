@@ -1,12 +1,12 @@
 """Print the three headline findings side by side, original corpus vs public one.
 
 Every figure here is read out of a stored ``report`` result object — the same
-``python -m agentfail report`` output, produced by the same analyses, over
+``tracon study report`` output, produced by the same analyses, over
 whichever export it was pointed at. Nothing is recomputed with a second
 implementation, because the entire value of the exercise is that the code did
 not change when the data did.
 
-    python scripts/replicate.py --study results/study.json \\
+    python scripts/study_replicate.py --study docs/results/study.json \\
         --public <dir>/results-openhands-shape.json \\
         --exact  <dir>/results-openhands-exact.json \\
         --bash-only <dir>/results-openhands-bashonly.json \\
@@ -22,7 +22,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-from agentfail.stats import two_proportion_test  # noqa: E402
+from tracon.study.stats import two_proportion_test
 
 
 def load(path: str | Path | None) -> dict | None:
@@ -30,7 +30,10 @@ def load(path: str | Path | None) -> dict | None:
 
 
 def rate(node: dict) -> str:
-    return f"{node['pct']:.2f}% [{node['ci95_pct'][0]:.2f}-{node['ci95_pct'][1]:.2f}] (n={node['n']}/{node['of']})"
+    return (
+        f"{node['pct']:.2f}% [{node['ci95_pct'][0]:.2f}-{node['ci95_pct'][1]:.2f}] "
+        f"(n={node['n']}/{node['of']})"
+    )
 
 
 def _tier(result: dict, key: str) -> dict | None:
@@ -45,9 +48,12 @@ def finding_1(study: dict, public: dict) -> list[str]:
         tier = _tier(result, "ge_60s")
         out.append(f"  {label:9} >=60s {rate(cmp['ge_60s'])}")
         out.append(f"  {label:9}  <60s {rate(cmp['lt_60s'])}")
-        ratio = cmp["ge_60s"]["pct"] / cmp["lt_60s"]["pct"] if cmp["lt_60s"]["pct"] else float("nan")
+        ratio = (
+            cmp["ge_60s"]["pct"] / cmp["lt_60s"]["pct"] if cmp["lt_60s"]["pct"] else float("nan")
+        )
         out.append(
-            f"  {label:9}       enrichment {ratio:.2f}x  z={cmp['test']['z']:.2f}  p={cmp['test']['p']:.3g}"
+            f"  {label:9}       enrichment {ratio:.2f}x  "
+            f"z={cmp['test']['z']:.2f}  p={cmp['test']['p']:.3g}"
         )
         if tier:
             out.append(
@@ -70,7 +76,8 @@ def finding_2(study: dict, public: dict) -> list[str]:
         t = ctx["trend_test"]
         out.append(
             f"  {label:9} unstratified trend z={t.get('z', 0):+.2f} p={t.get('p', 1):.3g} "
-            f"over {ctx['bins_used_in_trend_test']} bins, {ctx['calls_joined_to_context_size']:,} joined calls"
+            f"over {ctx['bins_used_in_trend_test']} bins, "
+            f"{ctx['calls_joined_to_context_size']:,} joined calls"
         )
         for tool, node in ctx["trend_test_stratified_by_tool"].items():
             tt = node["trend_test"]
@@ -107,10 +114,11 @@ def finding_3(study: dict, public: dict, exact: dict | None) -> list[str]:
             nxt.get(k, {}).get("n", 0) for k in ("same_tool_different_arguments", "switched_tool")
         )
         total = result["errors"]["overall_error_rate"]["n"]
+        out.append(f"  {label:9} blind identical retry       {rate(nxt['retry_identical_shape'])}")
         out.append(
-            f"  {label:9} blind identical retry       {rate(nxt['retry_identical_shape'])}"
+            f"  {label:9} adaptive next action        "
+            f"{100 * adaptive / total:.2f}% ({adaptive}/{total})"
         )
-        out.append(f"  {label:9} adaptive next action        {100 * adaptive / total:.2f}% ({adaptive}/{total})")
         stuck = loop["stuck_run_vs_bad_ending"]
         out.append(
             f"  {label:9} bad ending | stuck run      {rate(stuck['with_stuck_run'])}"
@@ -133,14 +141,15 @@ def finding_3(study: dict, public: dict, exact: dict | None) -> list[str]:
             "  over an exact-argument fingerprint and the bracket checked against truth.",
         ]
         for name, result in (("shape lower", public), ("EXACT", exact), ("shape upper", public)):
-            bound = "lower_bound" if "lower" in name else "upper_bound" if "upper" in name else "upper_bound"
+            bound = "lower_bound" if "lower" in name else "upper_bound"
             v = result["looping"][bound]["share_of_calls_inside_a_repeat_run"]["pct"]
             out.append(f"    {name:<12} {v:.2f}%")
         truth = exact["looping"]["upper_bound"]["share_of_calls_inside_a_repeat_run"]["pct"]
         lo = public["looping"]["lower_bound"]["share_of_calls_inside_a_repeat_run"]["pct"]
         hi = public["looping"]["upper_bound"]["share_of_calls_inside_a_repeat_run"]["pct"]
         out.append(
-            f"    -> truth sits at {100 * (truth - lo) / (hi - lo):.0f}% of the way from the study's "
+            f"    -> truth sits at {100 * (truth - lo) / (hi - lo):.0f}% of the way "
+            f"from the study's "
             f"lower bound to its upper; the lower bound is off by {truth - lo:+.2f}pp, "
             f"the upper by {hi - truth:+.2f}pp"
         )
@@ -163,10 +172,10 @@ def sensitivity(public: dict, bash_only: dict | None) -> list[str]:
         t = result["context"]["trend_test"]
         nxt = result["errors"]["after_error_next_tool_call"]
         loop = result["looping"]
-        out.append(
-            f"  {label:<11} error rate {rate(result['errors']['overall_error_rate'])}"
+        out.append(f"  {label:<11} error rate {rate(result['errors']['overall_error_rate'])}")
+        ratio = (
+            cmp["ge_60s"]["pct"] / cmp["lt_60s"]["pct"] if cmp["lt_60s"]["pct"] else float("nan")
         )
-        ratio = cmp["ge_60s"]["pct"] / cmp["lt_60s"]["pct"] if cmp["lt_60s"]["pct"] else float("nan")
         out.append(
             f"  {label:<11}   F1 >=60s {cmp['ge_60s']['pct']:.2f}% vs {cmp['lt_60s']['pct']:.2f}% "
             f"({ratio:.2f}x, p={cmp['test']['p']:.3g})"
@@ -213,7 +222,10 @@ def by_model(paths: list[str]) -> list[str]:
         "=" * 78,
         "PER MODEL - does capability, not harness, explain the divergence?",
         "=" * 78,
-        f"  {'model run':<22}{'calls':>8}{'err%':>8}{'retry%':>8}{'stuck% lo-hi':>16}{'finished%':>11}",
+        (
+            f"  {'model run':<22}{'calls':>8}{'err%':>8}"
+            f"{'retry%':>8}{'stuck% lo-hi':>16}{'finished%':>11}"
+        ),
     ]
     for name, calls, err, retry, slo, shi, done in rows:
         out.append(
@@ -232,9 +244,9 @@ def ground_truth(export: str | None) -> list[str]:
     """
     if not export:
         return []
-    from agentfail import loader
-    from agentfail.analyses.looping import STUCK_RUN_THRESHOLD, consecutive_runs
-    from agentfail.stats import two_proportion_test, wilson
+    from tracon.study import loader
+    from tracon.study.analyses.looping import STUCK_RUN_THRESHOLD, consecutive_runs
+    from tracon.study.stats import two_proportion_test, wilson
 
     corpus = loader.load(export)
     scored = [s for s in corpus.subagent_streams if s.session_event.get("resolved") is not None]
@@ -244,8 +256,12 @@ def ground_truth(export: str | None) -> list[str]:
         "=" * 78,
         "EXTENSION - does any of this predict a WRONG answer, not just an unfinished one?",
         "=" * 78,
-        f"  {len(scored):,} of {len(corpus.subagent_streams):,} runs carry a SWE-bench verdict; "
-        f"{wilson(sum(1 for s in scored if s.session_event['resolved']), len(scored))} resolved overall.",
+        (
+            f"  {len(scored):,} of {len(corpus.subagent_streams):,} runs carry a SWE-bench "
+            f"verdict; "
+            f"{wilson(sum(1 for s in scored if s.session_event['resolved']), len(scored))} "
+            f"resolved overall."
+        ),
     ]
     checks = [
         (
@@ -271,7 +287,7 @@ def ground_truth(export: str | None) -> list[str]:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--study", default="results/study.json")
+    parser.add_argument("--study", default="docs/results/study.json")
     parser.add_argument("--public", required=True)
     parser.add_argument("--exact")
     parser.add_argument("--bash-only")

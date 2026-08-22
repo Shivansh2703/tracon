@@ -16,8 +16,8 @@ import json
 
 import pytest
 
-from agentfail import loader
-from agentfail.adapters._emit import (
+from tracon.study import loader
+from tracon.study.adapters._emit import (
     ExportWriter,
     ShapeMode,
     exact_signature,
@@ -86,8 +86,16 @@ class TestExportWriter:
         w.session("s1", "a1", t_start=1000, t_end=5000, end_status="completed")
         w.api_call("s1", "a1", uuid="u1", ts=1000, in_tokens=1234, tool_use_blocks=1)
         w.tool_call(
-            "s1", "a1", id="t1", name="Bash", args={"command": "ls"},
-            ts=1000, ts_result=2000, duration_ms=1000, api_uuid="u1", result_chars=42,
+            "s1",
+            "a1",
+            id="t1",
+            name="Bash",
+            args={"command": "ls"},
+            ts=1000,
+            ts_result=2000,
+            duration_ms=1000,
+            api_uuid="u1",
+            result_chars=42,
         )
         corpus = loader.load(w.write())
 
@@ -123,7 +131,7 @@ class TestExportWriter:
 
     def test_untimed_calls_stay_untimed_rather_than_becoming_zero(self, tmp_path):
         """A corpus with no wall clock must produce *no* long-tail rows."""
-        from agentfail.analyses import longtail
+        from tracon.study.analyses import longtail
 
         w = _writer(tmp_path)
         w.session("s1")
@@ -152,7 +160,7 @@ class TestPhantomContextGuard:
             w.write()
 
     def test_unjoined_calls_are_reported_unjoinable_not_binned_at_zero(self, tmp_path):
-        from agentfail.analyses import context
+        from tracon.study.analyses import context
 
         w = _writer(tmp_path)
         w.session("s1")

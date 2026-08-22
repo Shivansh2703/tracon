@@ -22,8 +22,8 @@ from __future__ import annotations
 
 from collections import Counter
 
-from ..loader import Corpus, Stream
-from ..stats import quantiles, wilson
+from tracon.study.loader import Corpus, Stream
+from tracon.study.stats import quantiles, wilson
 
 # A run this long is not "checked twice", it is a loop a human would call stuck.
 STUCK_RUN_THRESHOLD = 5
@@ -75,7 +75,8 @@ def analyze(corpus: Corpus) -> dict:
         all_runs = [r for runs in runs_by_stream.values() for r in runs]
         calls_in_runs = sum(r["length"] for r in all_runs)
         stuck_streams = {
-            key for key, runs in runs_by_stream.items()
+            key
+            for key, runs in runs_by_stream.items()
             if any(r["length"] >= STUCK_RUN_THRESHOLD for r in runs)
         }
         looping_streams = {key for key, runs in runs_by_stream.items() if runs}

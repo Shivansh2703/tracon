@@ -1,11 +1,12 @@
-"""Tests for agentfail.analyses.termination: end-status rates, recovery
+"""Tests for tracon.study.analyses.termination: end-status rates, recovery
 denominators, and the thin-evidence proxy boundary."""
 
 from __future__ import annotations
 
-from agentfail import loader
-from agentfail.analyses import termination
 from conftest import build_export
+
+from tracon.study import loader
+from tracon.study.analyses import termination
 
 
 def _call(name="Bash", is_error=False, **kw):
@@ -18,7 +19,12 @@ def test_end_status_counts_and_rates(tmp_path):
         [
             {"session": "s1", "agent": "a", "end_status": "completed", "calls": [_call()]},
             {"session": "s1", "agent": "b", "end_status": "completed", "calls": [_call()]},
-            {"session": "s1", "agent": "c", "end_status": "failed", "calls": [_call(is_error=True)]},
+            {
+                "session": "s1",
+                "agent": "c",
+                "end_status": "failed",
+                "calls": [_call(is_error=True)],
+            },
             {"session": "s1", "agent": "d", "end_status": "killed", "calls": [_call()]},
         ],
     )
@@ -101,8 +107,20 @@ def test_hard_failures_combines_failed_and_killed(tmp_path):
         tmp_path,
         [
             {"session": "s1", "agent": "a", "end_status": "completed", "calls": [_call()]},
-            {"session": "s1", "agent": "b", "end_status": "failed", "agent_type": "general-purpose", "calls": [_call(is_error=True)]},
-            {"session": "s1", "agent": "c", "end_status": "killed", "agent_type": "Explore", "calls": [_call()]},
+            {
+                "session": "s1",
+                "agent": "b",
+                "end_status": "failed",
+                "agent_type": "general-purpose",
+                "calls": [_call(is_error=True)],
+            },
+            {
+                "session": "s1",
+                "agent": "c",
+                "end_status": "killed",
+                "agent_type": "Explore",
+                "calls": [_call()],
+            },
         ],
     )
     corpus = loader.load(export)

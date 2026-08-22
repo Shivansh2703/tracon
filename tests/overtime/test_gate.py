@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import json
 
-from agent_obs.corpus import Snapshot
-from agent_obs.gate import check, render_check
+from tracon.overtime.corpus import Snapshot
+from tracon.overtime.gate import check, render_check
 
 
 def _base_snapshot(**overrides) -> Snapshot:
