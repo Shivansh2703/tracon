@@ -50,8 +50,26 @@ watch the test fail, revert. A test that has never been seen to fail is not evid
 
 ## Current state (2026-08-22)
 
-Built this night by an overnight seat, on branch `build-third-leg`, from the owner's 08-14
-ruling that the third leg gets built before the suite launch. Was a spec-only repo (13
-commits of wayfinder work, no code) until then. **Not merged to `main` — that is the owner's.**
+Built overnight from the owner's 08-14 ruling that the third leg gets built before the suite
+launch. Was a spec-only repo (13 commits of wayfinder work, no code) until then.
+
+**On branch `build-third-leg`, five commits, not merged — merging is the owner's.**
+
+What runs: `agent-obs track` (movement across N corpora) and `agent-obs check` (the gate).
+**41 tests, ruff clean.** Verified as an actual package, not just an importable directory —
+installs from a clean `git archive` into a throwaway venv and the console script runs.
+
+Three independent review cycles, one of which **bounced** and was right to: the corrected
+numerator was first derived by subtraction, which silently rendered a negative percentage and
+crashed the gate on a `ValueError` once that reached the statistics. Counting directly on
+mutually exclusive branches makes the bad value unconstructable rather than clamped away.
+Every load-bearing detector has been mutation-bitten — broken, watched to fail a *named* test,
+restored.
+
+**The finding this leg produced on its first real run** is the thing to know before quoting any
+unaccounted-run number: roughly half of them in the August corpora are runs whose outcome the
+export never captured, not runs that died. See `../DECISIONS.md` (2026-08-22) for the evidence
+and for what is still owed to the owner — the root-cause repair belongs in tracon's exporter
+and is a schema change, which is not a seat's call.
 
 Repo is **local-only, no remote** (measured 2026-08-22). Nothing here has ever been published.
