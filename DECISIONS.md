@@ -226,3 +226,5 @@ contributors. That affects other people, so no keep-going instruction covers it,
 belongs inside the `--share` notice so a contributor reads it before deciding.
 
 - 2026-08-14 21:2x (Iris chat, owner verbatim): "tracon and agent-radar are a 1-2 punch both are good on their own but better together." — standing strategic frame: the two ship as complements (radar = live eyes in the editor, tracon doctor/monitor = measurement + evidence on the same failure classes); future direction work treats them as one story, two tools. Same entry mirrored in agent-radar DECISIONS.md.
+
+- 2026-08-22 00:2x (Iris chat, owner verbatim): "Ok good spawn the vyuha ... and tracon seats push nav2 for later" — RELEASE for the third-leg seat: build agent-obs (the 08-14 ruling) overnight, unattended, owner asleep; these words are the release, no tab interview tonight. Seat decisions stay labeled as seat decisions; owner rulings owed (e.g. what may be done with a shared aggregate) stay owed, not taken.
