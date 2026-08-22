@@ -20,13 +20,28 @@ Current state below before assuming this is an active build lane.
 - Owner merges his own PRs — never self-merge to main.
 - Path-staged commits only; one logical change per commit.
 
-## Current state (2026-08-07 — per the DECISIONS.md tail, which wins over this section)
+## Current state (2026-08-22 — per the DECISIONS.md tail, which wins over this section)
 Archived locally by the owner's 2026-08-04 ruling; the public GitHub repo stays up.
-M4 code is in the repo, but its −36% p95 headline is **WITHDRAWN** — do not repeat it.
-Suite story reopened 2026-08-07 as a launch direction: tracon + agentfail + agent-obs
-packaged together. agent-obs is a README stub only, so the suite has a missing third leg;
-the owner owes a decision on build-agent-obs-first vs launch-the-pair. Suite launch slots
-September or later (August is booked, one launch per week).
+M4 code is in the repo, but its p95 headline is **WITHDRAWN** — see the Laws above for the
+figures that are banned, and never repeat them.
+
+**`tracon doctor` shipped 2026-08-14** — zero-config local diagnosis of your own transcripts,
+with `--json` and a statistics-only `--share`. It makes no network calls.
+
+**The suite's three legs, and where each lives.** tracon (this repo, PUBLIC) · agentfail and
+agent-obs (both **separate local-only git repos nested here and gitignored** — they are not
+part of this tree, and neither has ever been published). The owner's 08-14 ruling was to build
+the third leg before the suite launch; **agent-obs was built 2026-08-22** on branch
+`build-third-leg` in its own repo — the fleet-over-time view: what moved between exports, and
+which seat is responsible. Unmerged; the owner merges.
+
+**Live correction, read before quoting any unaccounted-run figure:** roughly half the
+"16.5% of subagent runs end with no recorded outcome" headline is a measurement artifact —
+workflow workers cannot resolve an end status through the exporter at all. Corrected rates and
+the full evidence are in the DECISIONS.md tail. `tracon doctor` still prints the uncorrected
+figure; repairing that is owed to the owner, not taken by a seat.
+
+Suite launch slots September or later (August is booked, one launch per week).
 tracon.dev + PyPI name claims are the owner's move — never register anything.
 
 ## Instructions for all coding agents (folded in from AGENTS.md, 2026-08-17)

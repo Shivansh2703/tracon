@@ -229,4 +229,74 @@ belongs inside the `--share` notice so a contributor reads it before deciding.
 
 - 2026-08-22 00:2x (Iris chat, owner verbatim): "Ok good spawn the vyuha ... and tracon seats push nav2 for later" — RELEASE for the third-leg seat: build agent-obs (the 08-14 ruling) overnight, unattended, owner asleep; these words are the release, no tab interview tonight. Seat decisions stay labeled as seat decisions; owner rulings owed (e.g. what may be done with a shared aggregate) stay owed, not taken.
 
+## 2026-08-22 — HALF THE UNACCOUNTED-RUN FIGURE IS AN ARTIFACT
+
+**This is a correction to a number already on record in this file and printed to users by
+`tracon doctor`. It was found by the third leg on its first run against real data, and it is
+recorded here before anything is done about it.**
+
+The claim on record is that **16.5% of subagent runs end with no recorded outcome** — not
+success, not failure, unaccounted. It is the measurement the whole silent-failure wedge rests
+on. A share of it cannot mean what it appears to mean.
+
+**What was measured, and how.** The new per-seat breakdown printed `workflow-subagent: 106 of
+106 = 100.00% unaccounted`. Exactly 100% is not what behaviour looks like; it is what structure
+looks like. The hypothesis was then handed to an agent told to **refute** it, not confirm it.
+
+It survived. The decisive fact, MEASURED on disk: **all 106 workflow-worker meta files have no
+`toolUseId` key at all.** The exporter resolves a subagent's end status either from a
+task-notification in the parent transcript or from a matched synchronous `tool_result` keyed by
+that id. With the key absent, both branches are unreachable, and every workflow worker falls
+through to `unknown` unconditionally. Zero of 106 resolving is the only outcome that code path
+can produce.
+
+Their outcomes are not missing from the machine — they are in `journal.jsonl`, which the
+exporter deliberately does not walk. MEASURED: all 106 have both a `started` and a `result`
+record, so **all 106 finished**. What the journal does not carry, in its structure, is a
+success/failure flag — so it settles "did it finish", not "did it succeed".
+
+**How much of the headline this is** (MEASURED, streamed over each export):
+
+| export | raw unaccounted | of which structurally unresolvable | corrected rate |
+|---|---|---|---|
+| export-2026-07-30 | 331/1626 = **20.36%** | 98 (29.6%) | 233/1528 = **15.25%** |
+| export-2026-08-14 | 205/1239 = **16.55%** | 106 (51.7%) | 99/1133 = **8.74%** |
+| export-2026-08-14b | 205/1253 = **16.36%** | 106 (51.7%) | 99/1147 = **8.63%** |
+
+**Half the August figure, and a third of the July one, is a file nobody opened.** The artifact
+is fully isolated: MEASURED, no run of any other agent type carries a non-null `workflow`, so
+the 7–17% unaccounted rates on the ordinary seat types are untouched and remain a real,
+separate phenomenon.
+
+**What the seat did about it, and what it deliberately did not.**
+
+DID, because it is the seat's own deliverable and it would otherwise lie to a user on first
+run: agent-obs now separates structurally-unresolvable runs from unaccounted ones, keys off the
+`workflow` field rather than a user-chosen type name, reports the raw and corrected rates side
+by side, and gates on the corrected one. The raw figure is kept and kept identical to doctor's,
+because two tools in one suite must not print different values for the same named quantity.
+
+**DID NOT — owed to him:**
+
+1. **The root-cause fix belongs in the exporter, not in one consumer.** Every leg reads the same
+   export; patching only the tool that noticed leaves doctor and agentfail still reporting it.
+   The real repair is for the export to distinguish "no outcome recorded" from "outcome not
+   capturable here" — which is a **schema change**, invalidating comparisons against existing
+   exports and touching agentfail's loader. That blast radius is not a seat's call at 1am.
+2. **`tracon doctor` still prints 16.5% as a reference figure to strangers.** It is not *false* —
+   the runs genuinely have no outcome in the export, which is what the text says — but a reader
+   will take it as a fleet problem, and half of it is not. The minimum honest repair is an
+   in-band caveat, not a number change. Not taken, because it is public-facing copy on the
+   suite's front door.
+3. **A cross-leg inconsistency this exposed.** agentfail's termination analysis already calls
+   `end_status: unknown` **"missing data, not a failure"** and excludes it from its denominators.
+   doctor headlines the same quantity as a finding. Both are defensible alone; together in one
+   launched suite they are a question someone will ask. Owed as a positioning call.
+
+**Method note, stated because it is the reason this was caught at all:** the figure was not
+questioned by reading the code. It was questioned because a per-seat breakdown made a
+suspiciously round number visible, and the round number was then handed to an adversary rather
+than to a confirmer. The two withdrawn headlines in this file were both found the same way,
+late. This one was found on day one of the tool that surfaces it.
+
 - 2026-08-22 01:4x (Iris chat, owner verbatim): **"Make the whole project tracon"** — RULING, after Iris described the three-tool shape (tracon/doctor · agentfail · agent-obs): one project, one repo, one name. The study and the over-time tool fold INTO tracon as parts of it; "agentfail" and "agent-obs" cease to be separate projects or names. Iris's reading of scope, not his words: history-preserving fold on a branch, no push, public-repo laws (no trailers, banned numbers) bind.
