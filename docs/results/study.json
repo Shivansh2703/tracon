@@ -1,0 +1,1991 @@
+{
+  "context": {
+    "bins_used_in_trend_test": 13,
+    "calls_joined_to_context_size": 25199,
+    "calls_unjoinable": 59905,
+    "compaction": {
+      "baseline_error_rate": {
+        "ci95_pct": [
+          3.222,
+          3.463
+        ],
+        "n": 2843,
+        "of": 85104,
+        "pct": 3.341
+      },
+      "by_trigger": {
+        "auto": 5,
+        "manual": 33
+      },
+      "error_rate_after_compaction": {
+        "ci95_pct": [
+          2.672,
+          5.57
+        ],
+        "n": 27,
+        "of": 698,
+        "pct": 3.868
+      },
+      "events": 38,
+      "post_compaction_window_minutes": 10,
+      "power_warning": "Only 38 compaction events exist corpus-wide. This comparison can rule out a large effect and nothing smaller.",
+      "streams_with_any_compaction": 26,
+      "test": {
+        "a": 0.03868194842406877,
+        "b": 0.03340618537319045,
+        "p": 0.4400961428024333,
+        "z": 0.7720308723108927
+      }
+    },
+    "error_rate_by_context_bin": {
+      "000-025k": {
+        "ci95_pct": [
+          0.868,
+          2.757
+        ],
+        "n": 11,
+        "of": 709,
+        "pct": 1.551
+      },
+      "025-050k": {
+        "ci95_pct": [
+          2.103,
+          2.976
+        ],
+        "n": 124,
+        "of": 4955,
+        "pct": 2.503
+      },
+      "050-075k": {
+        "ci95_pct": [
+          3.116,
+          4.227
+        ],
+        "n": 159,
+        "of": 4379,
+        "pct": 3.631
+      },
+      "075-100k": {
+        "ci95_pct": [
+          2.529,
+          3.786
+        ],
+        "n": 91,
+        "of": 2939,
+        "pct": 3.096
+      },
+      "100-125k": {
+        "ci95_pct": [
+          2.306,
+          3.718
+        ],
+        "n": 65,
+        "of": 2218,
+        "pct": 2.931
+      },
+      "125-150k": {
+        "ci95_pct": [
+          2.006,
+          3.541
+        ],
+        "n": 46,
+        "of": 1724,
+        "pct": 2.668
+      },
+      "150-175k": {
+        "ci95_pct": [
+          2.398,
+          4.2
+        ],
+        "n": 47,
+        "of": 1479,
+        "pct": 3.178
+      },
+      "175-200k": {
+        "ci95_pct": [
+          2.441,
+          4.709
+        ],
+        "n": 34,
+        "of": 1001,
+        "pct": 3.397
+      },
+      "200-225k": {
+        "ci95_pct": [
+          1.153,
+          2.93
+        ],
+        "n": 17,
+        "of": 923,
+        "pct": 1.842
+      },
+      "225-250k": {
+        "ci95_pct": [
+          1.405,
+          3.562
+        ],
+        "n": 17,
+        "of": 758,
+        "pct": 2.243
+      },
+      "250-275k": {
+        "ci95_pct": [
+          2.078,
+          4.883
+        ],
+        "n": 20,
+        "of": 626,
+        "pct": 3.195
+      },
+      "275-300k": {
+        "ci95_pct": [
+          1.697,
+          4.549
+        ],
+        "n": 15,
+        "of": 538,
+        "pct": 2.788
+      },
+      "300k+": {
+        "ci95_pct": [
+          1.465,
+          2.457
+        ],
+        "n": 56,
+        "of": 2950,
+        "pct": 1.898
+      }
+    },
+    "min_calls_per_bin_for_trend": 200,
+    "tool_composition_by_context_bin_pct": {
+      "000k": {
+        "Agent": 0.7,
+        "Bash": 50.6,
+        "Read": 45.7,
+        "ToolSearch": 2.3
+      },
+      "025k": {
+        "Bash": 55.4,
+        "Edit": 3.8,
+        "Read": 33.6,
+        "WebFetch": 1.9
+      },
+      "050k": {
+        "Bash": 54.0,
+        "Edit": 10.7,
+        "Read": 26.2,
+        "SendMessage": 1.8
+      },
+      "075k": {
+        "Bash": 47.5,
+        "Edit": 16.9,
+        "Read": 22.7,
+        "SendMessage": 3.2
+      },
+      "100k": {
+        "Bash": 43.6,
+        "Edit": 18.3,
+        "Read": 20.5,
+        "SendMessage": 4.0
+      },
+      "125k": {
+        "Bash": 42.3,
+        "Edit": 22.6,
+        "Read": 22.1,
+        "SendMessage": 4.8
+      },
+      "150k": {
+        "Bash": 38.3,
+        "Edit": 25.9,
+        "Read": 16.9,
+        "SendMessage": 5.0
+      },
+      "175k": {
+        "Bash": 41.2,
+        "Edit": 24.5,
+        "Read": 13.1,
+        "SendMessage": 6.7
+      },
+      "200k": {
+        "Bash": 41.9,
+        "Edit": 23.3,
+        "Read": 13.3,
+        "SendMessage": 8.0
+      },
+      "225k": {
+        "Bash": 38.3,
+        "Edit": 21.9,
+        "Read": 13.3,
+        "SendMessage": 9.0
+      },
+      "250k": {
+        "Bash": 41.2,
+        "Edit": 21.2,
+        "Read": 14.4,
+        "SendMessage": 9.3
+      },
+      "275k": {
+        "Bash": 45.7,
+        "Edit": 16.5,
+        "Read": 9.7,
+        "SendMessage": 12.1
+      },
+      "300k": {
+        "Bash": 42.4,
+        "Edit": 16.1,
+        "Read": 11.8,
+        "SendMessage": 14.8
+      }
+    },
+    "trend_test": {
+      "p": 0.01997261741261004,
+      "z": -2.3268618845704836
+    },
+    "trend_test_stratified_by_tool": {
+      "Bash": {
+        "bins_used": 13,
+        "calls": 11967,
+        "error_rate_by_bin": {
+          "000k": {
+            "ci95_pct": [
+              0.948,
+              3.969
+            ],
+            "n": 7,
+            "of": 359,
+            "pct": 1.95
+          },
+          "025k": {
+            "ci95_pct": [
+              2.252,
+              3.494
+            ],
+            "n": 77,
+            "of": 2743,
+            "pct": 2.807
+          },
+          "050k": {
+            "ci95_pct": [
+              3.567,
+              5.211
+            ],
+            "n": 102,
+            "of": 2364,
+            "pct": 4.315
+          },
+          "075k": {
+            "ci95_pct": [
+              2.85,
+              4.849
+            ],
+            "n": 52,
+            "of": 1397,
+            "pct": 3.722
+          },
+          "100k": {
+            "ci95_pct": [
+              2.967,
+              5.471
+            ],
+            "n": 39,
+            "of": 966,
+            "pct": 4.037
+          },
+          "125k": {
+            "ci95_pct": [
+              1.892,
+              4.364
+            ],
+            "n": 21,
+            "of": 729,
+            "pct": 2.881
+          },
+          "150k": {
+            "ci95_pct": [
+              2.299,
+              5.395
+            ],
+            "n": 20,
+            "of": 566,
+            "pct": 3.534
+          },
+          "175k": {
+            "ci95_pct": [
+              2.035,
+              5.622
+            ],
+            "n": 14,
+            "of": 412,
+            "pct": 3.398
+          },
+          "200k": {
+            "ci95_pct": [
+              0.403,
+              2.627
+            ],
+            "n": 4,
+            "of": 387,
+            "pct": 1.034
+          },
+          "225k": {
+            "ci95_pct": [
+              1.174,
+              4.898
+            ],
+            "n": 7,
+            "of": 290,
+            "pct": 2.414
+          },
+          "250k": {
+            "ci95_pct": [
+              1.579,
+              5.998
+            ],
+            "n": 8,
+            "of": 258,
+            "pct": 3.101
+          },
+          "275k": {
+            "ci95_pct": [
+              1.123,
+              5.218
+            ],
+            "n": 6,
+            "of": 246,
+            "pct": 2.439
+          },
+          "300k": {
+            "ci95_pct": [
+              1.819,
+              3.592
+            ],
+            "n": 32,
+            "of": 1250,
+            "pct": 2.56
+          }
+        },
+        "trend_test": {
+          "p": 0.06577839062758792,
+          "z": -1.8399308465865787
+        }
+      },
+      "Edit": {
+        "bins_used": 8,
+        "calls": 3660,
+        "error_rate_by_bin": {
+          "050k": {
+            "ci95_pct": [
+              3.652,
+              7.783
+            ],
+            "n": 25,
+            "of": 467,
+            "pct": 5.353
+          },
+          "075k": {
+            "ci95_pct": [
+              3.918,
+              8.006
+            ],
+            "n": 28,
+            "of": 498,
+            "pct": 5.622
+          },
+          "100k": {
+            "ci95_pct": [
+              2.624,
+              6.587
+            ],
+            "n": 17,
+            "of": 407,
+            "pct": 4.177
+          },
+          "125k": {
+            "ci95_pct": [
+              3.344,
+              7.788
+            ],
+            "n": 20,
+            "of": 390,
+            "pct": 5.128
+          },
+          "150k": {
+            "ci95_pct": [
+              2.993,
+              7.306
+            ],
+            "n": 18,
+            "of": 383,
+            "pct": 4.7
+          },
+          "175k": {
+            "ci95_pct": [
+              3.745,
+              9.855
+            ],
+            "n": 15,
+            "of": 245,
+            "pct": 6.122
+          },
+          "200k": {
+            "ci95_pct": [
+              2.218,
+              7.763
+            ],
+            "n": 9,
+            "of": 215,
+            "pct": 4.186
+          },
+          "300k": {
+            "ci95_pct": [
+              2.581,
+              6.175
+            ],
+            "n": 19,
+            "of": 474,
+            "pct": 4.008
+          }
+        },
+        "trend_test": {
+          "p": 0.30304891168101267,
+          "z": -1.0299171236420408
+        }
+      },
+      "Read": {
+        "bins_used": 8,
+        "calls": 5732,
+        "error_rate_by_bin": {
+          "000k": {
+            "ci95_pct": [
+              0.481,
+              3.131
+            ],
+            "n": 4,
+            "of": 324,
+            "pct": 1.235
+          },
+          "025k": {
+            "ci95_pct": [
+              0.456,
+              1.33
+            ],
+            "n": 13,
+            "of": 1667,
+            "pct": 0.78
+          },
+          "050k": {
+            "ci95_pct": [
+              0.729,
+              2.04
+            ],
+            "n": 14,
+            "of": 1146,
+            "pct": 1.222
+          },
+          "075k": {
+            "ci95_pct": [
+              0.082,
+              1.088
+            ],
+            "n": 2,
+            "of": 666,
+            "pct": 0.3
+          },
+          "100k": {
+            "ci95_pct": [
+              0.225,
+              1.925
+            ],
+            "n": 3,
+            "of": 454,
+            "pct": 0.661
+          },
+          "125k": {
+            "ci95_pct": [
+              0.046,
+              1.472
+            ],
+            "n": 1,
+            "of": 381,
+            "pct": 0.262
+          },
+          "150k": {
+            "ci95_pct": [
+              0.071,
+              2.231
+            ],
+            "n": 1,
+            "of": 250,
+            "pct": 0.4
+          },
+          "300k": {
+            "ci95_pct": [
+              0.0,
+              1.095
+            ],
+            "n": 0,
+            "of": 347,
+            "pct": 0.0
+          }
+        },
+        "trend_test": {
+          "p": 0.018833828381121902,
+          "z": -2.3488037925227205
+        }
+      }
+    }
+  },
+  "corpus": {
+    "api_calls": 88897,
+    "biases": [
+      "Single operator: every session is one developer's, with his prompting style and habits.",
+      "Single tool: Claude Code only (24 versions over the window). No other agent harness.",
+      "Single domain: his own software projects. No customer-facing or adversarial workloads.",
+      "Content-stripped by design: no prompts, no tool arguments, no outputs \u2014 shapes and timings only.",
+      "Observational: no interventions, no control group, no ground truth on task correctness.",
+      "Survivorship: transcripts that were deleted or never written are invisible here."
+    ],
+    "claude_code_versions": 24,
+    "compactions": 38,
+    "distinct_projects": 11,
+    "distinct_tools": 64,
+    "export_generated_at": "2026-07-30T17:39:48-04:00",
+    "main_sessions": 228,
+    "prompts": 4951,
+    "schema_version": 1,
+    "source": "/Users/shivansh/Personal/infinity/tracon/traces/export-2026-07-30",
+    "span_days": 30.2,
+    "streams": 1854,
+    "subagent_runs": 1626,
+    "tool_calls": 85104,
+    "top_models": [
+      [
+        "claude-sonnet-5",
+        50663
+      ],
+      [
+        "claude-fable-5",
+        18580
+      ],
+      [
+        "claude-opus-4-8",
+        12502
+      ],
+      [
+        "claude-opus-5",
+        5027
+      ],
+      [
+        "claude-haiku-4-5-20251001",
+        2935
+      ],
+      [
+        "<synthetic>",
+        103
+      ]
+    ],
+    "turns": 4390
+  },
+  "errors": {
+    "after_error_model_response": {
+      "kept_acting": {
+        "ci95_pct": [
+          94.976,
+          96.459
+        ],
+        "n": 2723,
+        "of": 2843,
+        "pct": 95.779
+      },
+      "no_further_model_call": {
+        "ci95_pct": [
+          0.191,
+          0.646
+        ],
+        "n": 10,
+        "of": 2843,
+        "pct": 0.352
+      },
+      "text_only_response": {
+        "ci95_pct": [
+          3.22,
+          4.643
+        ],
+        "n": 110,
+        "of": 2843,
+        "pct": 3.869
+      }
+    },
+    "after_error_next_tool_call": {
+      "no_further_tool_call": {
+        "ci95_pct": [
+          0.946,
+          1.789
+        ],
+        "n": 37,
+        "of": 2843,
+        "pct": 1.301
+      },
+      "retry_identical_shape": {
+        "ci95_pct": [
+          1.337,
+          2.311
+        ],
+        "n": 50,
+        "of": 2843,
+        "pct": 1.759
+      },
+      "same_tool_different_arguments": {
+        "ci95_pct": [
+          62.448,
+          65.97
+        ],
+        "n": 1826,
+        "of": 2843,
+        "pct": 64.228
+      },
+      "switched_tool": {
+        "ci95_pct": [
+          31.012,
+          34.459
+        ],
+        "n": 930,
+        "of": 2843,
+        "pct": 32.712
+      }
+    },
+    "declared_complete_with_unresolved_error": {
+      "by_end_status": {
+        "completed": {
+          "ci95_pct": [
+            5.066,
+            7.735
+          ],
+          "n": 80,
+          "of": 1276,
+          "pct": 6.27
+        },
+        "failed": {
+          "ci95_pct": [
+            11.806,
+            48.792
+          ],
+          "n": 5,
+          "of": 19,
+          "pct": 26.316
+        },
+        "killed": {
+          "ci95_pct": [
+            9.677,
+            70.001
+          ],
+          "n": 2,
+          "of": 6,
+          "pct": 33.333
+        },
+        "unknown": {
+          "ci95_pct": [
+            1.468,
+            5.194
+          ],
+          "n": 9,
+          "of": 324,
+          "pct": 2.778
+        }
+      },
+      "caveat": "This is a proxy, not an observation of the agent ignoring an error. A same-tool success elsewhere in the stream is counted as resolution, which over-forgives; and an unresolved error may have been correctly reported as a limitation in the agent's final message, which the stripped trace cannot show.",
+      "definition": "subagent whose end_status is 'completed' and whose trace contains at least one errored tool call never followed by a success of the same tool in that stream",
+      "final_call_errored_rate": {
+        "ci95_pct": [
+          1.079,
+          2.503
+        ],
+        "n": 21,
+        "of": 1276,
+        "pct": 1.646
+      },
+      "rate": {
+        "ci95_pct": [
+          5.066,
+          7.735
+        ],
+        "n": 80,
+        "of": 1276,
+        "pct": 6.27
+      }
+    },
+    "error_rate_by_tool": {
+      "Agent": {
+        "ci95_pct": [
+          0.666,
+          1.699
+        ],
+        "n": 17,
+        "of": 1596,
+        "pct": 1.065
+      },
+      "AskUserQuestion": {
+        "ci95_pct": [
+          4.359,
+          10.787
+        ],
+        "n": 17,
+        "of": 246,
+        "pct": 6.911
+      },
+      "Bash": {
+        "ci95_pct": [
+          3.453,
+          3.77
+        ],
+        "n": 1918,
+        "of": 53155,
+        "pct": 3.608
+      },
+      "Edit": {
+        "ci95_pct": [
+          5.614,
+          6.68
+        ],
+        "n": 476,
+        "of": 7771,
+        "pct": 6.125
+      },
+      "Monitor": {
+        "ci95_pct": [
+          0.056,
+          1.782
+        ],
+        "n": 1,
+        "of": 314,
+        "pct": 0.318
+      },
+      "Read": {
+        "ci95_pct": [
+          1.042,
+          1.436
+        ],
+        "n": 147,
+        "of": 12016,
+        "pct": 1.223
+      },
+      "SendMessage": {
+        "ci95_pct": [
+          0.049,
+          0.32
+        ],
+        "n": 4,
+        "of": 3207,
+        "pct": 0.125
+      },
+      "Skill": {
+        "ci95_pct": [
+          1.385,
+          5.756
+        ],
+        "n": 7,
+        "of": 246,
+        "pct": 2.846
+      },
+      "TaskUpdate": {
+        "ci95_pct": [
+          0.0,
+          1.563
+        ],
+        "n": 0,
+        "of": 242,
+        "pct": 0.0
+      },
+      "ToolSearch": {
+        "ci95_pct": [
+          0.0,
+          0.356
+        ],
+        "n": 0,
+        "of": 1074,
+        "pct": 0.0
+      },
+      "WebFetch": {
+        "ci95_pct": [
+          1.98,
+          4.759
+        ],
+        "n": 19,
+        "of": 617,
+        "pct": 3.079
+      },
+      "WebSearch": {
+        "ci95_pct": [
+          0.0,
+          0.462
+        ],
+        "n": 0,
+        "of": 828,
+        "pct": 0.0
+      },
+      "Write": {
+        "ci95_pct": [
+          2.911,
+          4.605
+        ],
+        "n": 70,
+        "of": 1910,
+        "pct": 3.665
+      },
+      "mcp__claude-in-chrome__computer": {
+        "ci95_pct": [
+          0.124,
+          1.631
+        ],
+        "n": 2,
+        "of": 443,
+        "pct": 0.451
+      }
+    },
+    "error_rate_long_vs_short": {
+      "ge_60s": {
+        "ci95_pct": [
+          9.203,
+          11.318
+        ],
+        "n": 322,
+        "of": 3153,
+        "pct": 10.212
+      },
+      "lt_60s": {
+        "ci95_pct": [
+          2.953,
+          3.189
+        ],
+        "n": 2514,
+        "of": 81913,
+        "pct": 3.069
+      },
+      "test": {
+        "a": 0.10212496035521726,
+        "b": 0.030691099092940072,
+        "p": 1.4794381560591758e-106,
+        "z": 21.925639783109506
+      }
+    },
+    "overall_error_rate": {
+      "ci95_pct": [
+        3.222,
+        3.463
+      ],
+      "n": 2843,
+      "of": 85104,
+      "pct": 3.341
+    }
+  },
+  "longtail": {
+    "duration_quantiles_ms": {
+      "max": 105530061.0,
+      "p50": 1262.0,
+      "p90": 8388.0,
+      "p95": 31832.0,
+      "p99": 159915.0
+    },
+    "extremes": [
+      {
+        "background": false,
+        "class": "heavy_work",
+        "is_error": false,
+        "minutes": 1758.8,
+        "result_chars": 49,
+        "tool": "Bash"
+      },
+      {
+        "background": false,
+        "class": "errored",
+        "is_error": true,
+        "minutes": 231.0,
+        "result_chars": 382,
+        "tool": "Bash"
+      },
+      {
+        "background": false,
+        "class": "heavy_work",
+        "is_error": false,
+        "minutes": 131.3,
+        "result_chars": 341,
+        "tool": "Bash"
+      },
+      {
+        "background": false,
+        "class": "heavy_work",
+        "is_error": false,
+        "minutes": 86.0,
+        "result_chars": 92,
+        "tool": "Bash"
+      },
+      {
+        "background": false,
+        "class": "waiting_on_agent",
+        "is_error": false,
+        "minutes": 85.0,
+        "result_chars": 311,
+        "tool": "Agent"
+      },
+      {
+        "background": false,
+        "class": "errored",
+        "is_error": true,
+        "minutes": 45.3,
+        "result_chars": 1064,
+        "tool": "ExitPlanMode"
+      },
+      {
+        "background": false,
+        "class": "errored",
+        "is_error": true,
+        "minutes": 36.6,
+        "result_chars": 201,
+        "tool": "Agent"
+      },
+      {
+        "background": false,
+        "class": "errored",
+        "is_error": true,
+        "minutes": 31.3,
+        "result_chars": 201,
+        "tool": "Agent"
+      },
+      {
+        "background": false,
+        "class": "waiting_on_human",
+        "is_error": false,
+        "minutes": 28.4,
+        "result_chars": 518,
+        "tool": "AskUserQuestion"
+      },
+      {
+        "background": false,
+        "class": "errored",
+        "is_error": true,
+        "minutes": 27.7,
+        "result_chars": 42,
+        "tool": "Agent"
+      },
+      {
+        "background": false,
+        "class": "waiting_on_agent",
+        "is_error": false,
+        "minutes": 23.4,
+        "result_chars": 2292,
+        "tool": "Agent"
+      },
+      {
+        "background": false,
+        "class": "heavy_work",
+        "is_error": false,
+        "minutes": 22.4,
+        "result_chars": 24485,
+        "tool": "Bash"
+      },
+      {
+        "background": false,
+        "class": "waiting_on_human",
+        "is_error": false,
+        "minutes": 21.1,
+        "result_chars": 330,
+        "tool": "AskUserQuestion"
+      },
+      {
+        "background": false,
+        "class": "waiting_on_human",
+        "is_error": false,
+        "minutes": 20.0,
+        "result_chars": 180,
+        "tool": "AskUserQuestion"
+      },
+      {
+        "background": false,
+        "class": "waiting_on_agent",
+        "is_error": false,
+        "minutes": 18.3,
+        "result_chars": 7257,
+        "tool": "Agent"
+      }
+    ],
+    "never_returned": {
+      "by_tool": [
+        [
+          "Bash",
+          23
+        ],
+        [
+          "WebFetch",
+          1
+        ],
+        [
+          "Agent",
+          1
+        ]
+      ],
+      "count": 25,
+      "definition": "tool_use with no tool_result on disk \u2014 the stream died with the call in flight",
+      "rate": {
+        "ci95_pct": [
+          0.02,
+          0.043
+        ],
+        "n": 25,
+        "of": 85104,
+        "pct": 0.029
+      }
+    },
+    "tiers": {
+      "ge_10s": {
+        "by_tool": [
+          [
+            "Bash",
+            6569
+          ],
+          [
+            "AskUserQuestion",
+            235
+          ],
+          [
+            "Agent",
+            212
+          ],
+          [
+            "WebSearch",
+            194
+          ],
+          [
+            "Edit",
+            61
+          ],
+          [
+            "WebFetch",
+            60
+          ],
+          [
+            "mcp__claude-in-chrome__browser_batch",
+            39
+          ],
+          [
+            "Write",
+            26
+          ]
+        ],
+        "calls": 7507,
+        "composition_by_calls": {
+          "errored": {
+            "ci95_pct": [
+              7.683,
+              8.931
+            ],
+            "n": 622,
+            "of": 7507,
+            "pct": 8.286
+          },
+          "heavy_work": {
+            "ci95_pct": [
+              84.829,
+              86.415
+            ],
+            "n": 6429,
+            "of": 7507,
+            "pct": 85.64
+          },
+          "waiting_on_agent": {
+            "ci95_pct": [
+              2.548,
+              3.309
+            ],
+            "n": 218,
+            "of": 7507,
+            "pct": 2.904
+          },
+          "waiting_on_human": {
+            "ci95_pct": [
+              2.797,
+              3.591
+            ],
+            "n": 238,
+            "of": 7507,
+            "pct": 3.17
+          }
+        },
+        "composition_by_time_pct": {
+          "errored": 11.72,
+          "heavy_work": 79.1,
+          "waiting_on_agent": 4.85,
+          "waiting_on_human": 4.33
+        },
+        "share_of_calls": {
+          "ci95_pct": [
+            8.636,
+            9.017
+          ],
+          "n": 7507,
+          "of": 85066,
+          "pct": 8.825
+        },
+        "share_of_tool_time_pct": 86.88
+      },
+      "ge_1800s": {
+        "by_tool": [
+          [
+            "Bash",
+            4
+          ],
+          [
+            "Agent",
+            3
+          ],
+          [
+            "ExitPlanMode",
+            1
+          ]
+        ],
+        "calls": 8,
+        "composition_by_calls": {
+          "errored": {
+            "ci95_pct": [
+              21.522,
+              78.478
+            ],
+            "n": 4,
+            "of": 8,
+            "pct": 50.0
+          },
+          "heavy_work": {
+            "ci95_pct": [
+              13.684,
+              69.426
+            ],
+            "n": 3,
+            "of": 8,
+            "pct": 37.5
+          },
+          "waiting_on_agent": {
+            "ci95_pct": [
+              2.242,
+              47.089
+            ],
+            "n": 1,
+            "of": 8,
+            "pct": 12.5
+          }
+        },
+        "composition_by_time_pct": {
+          "errored": 14.31,
+          "heavy_work": 82.16,
+          "waiting_on_agent": 3.53
+        },
+        "share_of_calls": {
+          "ci95_pct": [
+            0.005,
+            0.019
+          ],
+          "n": 8,
+          "of": 85066,
+          "pct": 0.009
+        },
+        "share_of_tool_time_pct": 16.29
+      },
+      "ge_300s": {
+        "by_tool": [
+          [
+            "Bash",
+            339
+          ],
+          [
+            "Agent",
+            30
+          ],
+          [
+            "AskUserQuestion",
+            23
+          ],
+          [
+            "Edit",
+            2
+          ],
+          [
+            "ExitPlanMode",
+            2
+          ]
+        ],
+        "calls": 396,
+        "composition_by_calls": {
+          "errored": {
+            "ci95_pct": [
+              13.32,
+              20.654
+            ],
+            "n": 66,
+            "of": 396,
+            "pct": 16.667
+          },
+          "heavy_work": {
+            "ci95_pct": [
+              66.304,
+              75.212
+            ],
+            "n": 281,
+            "of": 396,
+            "pct": 70.96
+          },
+          "waiting_on_agent": {
+            "ci95_pct": [
+              4.52,
+              9.446
+            ],
+            "n": 26,
+            "of": 396,
+            "pct": 6.566
+          },
+          "waiting_on_human": {
+            "ci95_pct": [
+              3.901,
+              8.564
+            ],
+            "n": 23,
+            "of": 396,
+            "pct": 5.808
+          }
+        },
+        "composition_by_time_pct": {
+          "errored": 15.93,
+          "heavy_work": 73.19,
+          "waiting_on_agent": 6.09,
+          "waiting_on_human": 4.79
+        },
+        "share_of_calls": {
+          "ci95_pct": [
+            0.422,
+            0.514
+          ],
+          "n": 396,
+          "of": 85066,
+          "pct": 0.466
+        },
+        "share_of_tool_time_pct": 36.94
+      },
+      "ge_30s": {
+        "by_tool": [
+          [
+            "Bash",
+            3928
+          ],
+          [
+            "AskUserQuestion",
+            183
+          ],
+          [
+            "Agent",
+            170
+          ],
+          [
+            "ExitPlanMode",
+            22
+          ],
+          [
+            "Edit",
+            19
+          ],
+          [
+            "WebFetch",
+            13
+          ],
+          [
+            "Write",
+            6
+          ],
+          [
+            "mcp__firecrawl__firecrawl_scrape",
+            4
+          ]
+        ],
+        "calls": 4360,
+        "composition_by_calls": {
+          "errored": {
+            "ci95_pct": [
+              8.683,
+              10.425
+            ],
+            "n": 415,
+            "of": 4360,
+            "pct": 9.518
+          },
+          "heavy_work": {
+            "ci95_pct": [
+              81.203,
+              83.465
+            ],
+            "n": 3591,
+            "of": 4360,
+            "pct": 82.362
+          },
+          "waiting_on_agent": {
+            "ci95_pct": [
+              3.3,
+              4.442
+            ],
+            "n": 167,
+            "of": 4360,
+            "pct": 3.83
+          },
+          "waiting_on_human": {
+            "ci95_pct": [
+              3.727,
+              4.932
+            ],
+            "n": 187,
+            "of": 4360,
+            "pct": 4.289
+          }
+        },
+        "composition_by_time_pct": {
+          "errored": 12.05,
+          "heavy_work": 78.37,
+          "waiting_on_agent": 5.09,
+          "waiting_on_human": 4.49
+        },
+        "share_of_calls": {
+          "ci95_pct": [
+            4.979,
+            5.276
+          ],
+          "n": 4360,
+          "of": 85066,
+          "pct": 5.125
+        },
+        "share_of_tool_time_pct": 80.94
+      },
+      "ge_600s": {
+        "by_tool": [
+          [
+            "Bash",
+            60
+          ],
+          [
+            "Agent",
+            15
+          ],
+          [
+            "AskUserQuestion",
+            11
+          ],
+          [
+            "Edit",
+            2
+          ],
+          [
+            "ExitPlanMode",
+            2
+          ]
+        ],
+        "calls": 90,
+        "composition_by_calls": {
+          "errored": {
+            "ci95_pct": [
+              19.58,
+              37.795
+            ],
+            "n": 25,
+            "of": 90,
+            "pct": 27.778
+          },
+          "heavy_work": {
+            "ci95_pct": [
+              36.708,
+              56.898
+            ],
+            "n": 42,
+            "of": 90,
+            "pct": 46.667
+          },
+          "waiting_on_agent": {
+            "ci95_pct": [
+              6.964,
+              20.574
+            ],
+            "n": 11,
+            "of": 90,
+            "pct": 12.222
+          },
+          "waiting_on_human": {
+            "ci95_pct": [
+              7.795,
+              21.874
+            ],
+            "n": 12,
+            "of": 90,
+            "pct": 13.333
+          }
+        },
+        "composition_by_time_pct": {
+          "errored": 17.32,
+          "heavy_work": 70.39,
+          "waiting_on_agent": 6.69,
+          "waiting_on_human": 5.6
+        },
+        "share_of_calls": {
+          "ci95_pct": [
+            0.086,
+            0.13
+          ],
+          "n": 90,
+          "of": 85066,
+          "pct": 0.106
+        },
+        "share_of_tool_time_pct": 23.14
+      },
+      "ge_60s": {
+        "by_tool": [
+          [
+            "Bash",
+            2835
+          ],
+          [
+            "Agent",
+            131
+          ],
+          [
+            "AskUserQuestion",
+            130
+          ],
+          [
+            "ExitPlanMode",
+            17
+          ],
+          [
+            "Edit",
+            14
+          ],
+          [
+            "WebFetch",
+            11
+          ],
+          [
+            "mcp__firecrawl__firecrawl_scrape",
+            4
+          ],
+          [
+            "Read",
+            2
+          ]
+        ],
+        "calls": 3153,
+        "composition_by_calls": {
+          "errored": {
+            "ci95_pct": [
+              9.203,
+              11.318
+            ],
+            "n": 322,
+            "of": 3153,
+            "pct": 10.212
+          },
+          "heavy_work": {
+            "ci95_pct": [
+              79.954,
+              82.672
+            ],
+            "n": 2565,
+            "of": 3153,
+            "pct": 81.351
+          },
+          "waiting_on_agent": {
+            "ci95_pct": [
+              3.483,
+              4.875
+            ],
+            "n": 130,
+            "of": 3153,
+            "pct": 4.123
+          },
+          "waiting_on_human": {
+            "ci95_pct": [
+              3.658,
+              5.08
+            ],
+            "n": 136,
+            "of": 3153,
+            "pct": 4.313
+          }
+        },
+        "composition_by_time_pct": {
+          "errored": 12.43,
+          "heavy_work": 77.81,
+          "waiting_on_agent": 5.24,
+          "waiting_on_human": 4.52
+        },
+        "share_of_calls": {
+          "ci95_pct": [
+            3.582,
+            3.836
+          ],
+          "n": 3153,
+          "of": 85066,
+          "pct": 3.707
+        },
+        "share_of_tool_time_pct": 75.08
+      }
+    },
+    "timed_calls": 85066,
+    "total_tool_hours": 246.1
+  },
+  "looping": {
+    "lower_bound": {
+      "errors_inside_runs": 33,
+      "longest_runs": [
+        {
+          "args_shape": "file_path:s95",
+          "errors_in_run": 0,
+          "length": 14,
+          "start_ts": 1784359343404,
+          "tool": "Read"
+        },
+        {
+          "args_shape": "command:s57",
+          "errors_in_run": 0,
+          "length": 13,
+          "start_ts": 1784228801316,
+          "tool": "Bash"
+        },
+        {
+          "args_shape": "command:s4",
+          "errors_in_run": 0,
+          "length": 10,
+          "start_ts": 1783904691019,
+          "tool": "Bash"
+        },
+        {
+          "args_shape": "file_path:s131",
+          "errors_in_run": 0,
+          "length": 9,
+          "start_ts": 1784260012718,
+          "tool": "Read"
+        },
+        {
+          "args_shape": "status:s9,taskId:s1",
+          "errors_in_run": 0,
+          "length": 8,
+          "start_ts": 1782856725403,
+          "tool": "TaskUpdate"
+        }
+      ],
+      "run_length_distribution": {
+        "2": 271,
+        "3": 60,
+        "4": 49,
+        "5": 12,
+        "6": 6,
+        "7": 2,
+        "8": 3,
+        "9": 1,
+        "10": 1,
+        "13": 1,
+        "14": 1
+      },
+      "run_length_quantiles": {
+        "max": 14.0,
+        "p50": 2.0,
+        "p90": 4.0,
+        "p95": 5.0,
+        "p99": 8.0
+      },
+      "runs": 407,
+      "runs_by_tool": [
+        [
+          "Bash",
+          180
+        ],
+        [
+          "Read",
+          153
+        ],
+        [
+          "TaskUpdate",
+          30
+        ],
+        [
+          "Edit",
+          11
+        ],
+        [
+          "mcp__claude-in-chrome__computer",
+          7
+        ],
+        [
+          "mcp__claude-in-chrome__browser_batch",
+          5
+        ],
+        [
+          "SendMessage",
+          5
+        ],
+        [
+          "TaskStop",
+          4
+        ]
+      ],
+      "share_of_calls_inside_a_repeat_run": {
+        "ci95_pct": [
+          1.217,
+          1.368
+        ],
+        "n": 1098,
+        "of": 85104,
+        "pct": 1.29
+      },
+      "share_of_streams_with_a_stuck_run": {
+        "ci95_pct": [
+          0.753,
+          1.752
+        ],
+        "n": 21,
+        "of": 1826,
+        "pct": 1.15
+      },
+      "share_of_streams_with_any_repeat": {
+        "ci95_pct": [
+          9.293,
+          12.121
+        ],
+        "n": 194,
+        "of": 1826,
+        "pct": 10.624
+      }
+    },
+    "streams_with_tool_calls": 1826,
+    "stuck_run_threshold": 5,
+    "stuck_run_vs_bad_ending": {
+      "note": "'bad ending' = end_status failed or killed. Only 25 such endings exist corpus-wide, so this comparison is underpowered by construction.",
+      "subagent_streams_scored": 1625,
+      "with_stuck_run": {
+        "ci95_pct": [
+          0.0,
+          13.798
+        ],
+        "n": 0,
+        "of": 24,
+        "pct": 0.0
+      },
+      "without_stuck_run": {
+        "ci95_pct": [
+          1.06,
+          2.295
+        ],
+        "n": 25,
+        "of": 1601,
+        "pct": 1.562
+      }
+    },
+    "total_tool_calls": 85104,
+    "upper_bound": {
+      "errors_inside_runs": 74,
+      "longest_runs": [
+        {
+          "args_shape": "prompt:s198,url:s46",
+          "errors_in_run": 0,
+          "length": 34,
+          "start_ts": 1782945710474,
+          "tool": "WebFetch"
+        },
+        {
+          "args_shape": "prompt:s117,url:s46",
+          "errors_in_run": 0,
+          "length": 15,
+          "start_ts": 1783624152144,
+          "tool": "WebFetch"
+        },
+        {
+          "args_shape": "file_path:s95",
+          "errors_in_run": 0,
+          "length": 14,
+          "start_ts": 1784359343404,
+          "tool": "Read"
+        },
+        {
+          "args_shape": "command:s57",
+          "errors_in_run": 0,
+          "length": 13,
+          "start_ts": 1784228801316,
+          "tool": "Bash"
+        },
+        {
+          "args_shape": "prompt:s363,url:s46",
+          "errors_in_run": 0,
+          "length": 12,
+          "start_ts": 1782837769687,
+          "tool": "WebFetch"
+        }
+      ],
+      "run_length_distribution": {
+        "2": 980,
+        "3": 127,
+        "4": 78,
+        "5": 18,
+        "6": 11,
+        "7": 2,
+        "8": 4,
+        "9": 1,
+        "10": 4,
+        "11": 3,
+        "12": 2,
+        "13": 1
+      },
+      "run_length_quantiles": {
+        "max": 34.0,
+        "p50": 2.0,
+        "p90": 4.0,
+        "p95": 4.0,
+        "p99": 10.0
+      },
+      "runs": 1234,
+      "runs_by_tool": [
+        [
+          "Read",
+          676
+        ],
+        [
+          "Bash",
+          381
+        ],
+        [
+          "mcp__claude-in-chrome__browser_batch",
+          31
+        ],
+        [
+          "TaskUpdate",
+          30
+        ],
+        [
+          "WebFetch",
+          20
+        ],
+        [
+          "WebSearch",
+          16
+        ],
+        [
+          "mcp__claude-in-chrome__computer",
+          14
+        ],
+        [
+          "Edit",
+          13
+        ]
+      ],
+      "share_of_calls_inside_a_repeat_run": {
+        "ci95_pct": [
+          3.446,
+          3.695
+        ],
+        "n": 3037,
+        "of": 85104,
+        "pct": 3.569
+      },
+      "share_of_streams_with_a_stuck_run": {
+        "ci95_pct": [
+          1.52,
+          2.843
+        ],
+        "n": 38,
+        "of": 1826,
+        "pct": 2.081
+      },
+      "share_of_streams_with_any_repeat": {
+        "ci95_pct": [
+          30.366,
+          34.658
+        ],
+        "n": 593,
+        "of": 1826,
+        "pct": 32.475
+      }
+    }
+  },
+  "termination": {
+    "end_status_counts": {
+      "completed": 1276,
+      "failed": 19,
+      "killed": 6,
+      "unknown": 325
+    },
+    "end_status_rates": {
+      "completed": {
+        "ci95_pct": [
+          76.411,
+          80.404
+        ],
+        "n": 1276,
+        "of": 1626,
+        "pct": 78.475
+      },
+      "failed": {
+        "ci95_pct": [
+          0.749,
+          1.818
+        ],
+        "n": 19,
+        "of": 1626,
+        "pct": 1.169
+      },
+      "killed": {
+        "ci95_pct": [
+          0.169,
+          0.803
+        ],
+        "n": 6,
+        "of": 1626,
+        "pct": 0.369
+      },
+      "unknown": {
+        "ci95_pct": [
+          18.116,
+          22.001
+        ],
+        "n": 325,
+        "of": 1626,
+        "pct": 19.988
+      }
+    },
+    "hard_failures": {
+      "by_agent_type": [
+        [
+          "opus-med",
+          9
+        ],
+        [
+          "general-purpose",
+          8
+        ],
+        [
+          "sonnet-med",
+          5
+        ],
+        [
+          "claude",
+          3
+        ]
+      ],
+      "failed_or_killed": {
+        "ci95_pct": [
+          1.044,
+          2.26
+        ],
+        "n": 25,
+        "of": 1626,
+        "pct": 1.538
+      }
+    },
+    "premature_confidence": {
+      "answerable": false,
+      "weak_shape_proxy": {
+        "caveat": "A small task legitimately needs few calls. This bounds suspicion, not error.",
+        "completed_runs_by_tool_call_count": {
+          "1-2": 26,
+          "10+": 1065,
+          "3-9": 185
+        },
+        "definition": "end_status=completed with <= 2 tool calls",
+        "rate": {
+          "ci95_pct": [
+            1.394,
+            2.969
+          ],
+          "n": 26,
+          "of": 1276,
+          "pct": 2.038
+        }
+      },
+      "why": "Requires the content of the agent's conclusion and a ground truth for whether it was right. The export strips both by design. No number in this study should be read as measuring premature confidence."
+    },
+    "recovery": {
+      "clean_runs_completed_rate": {
+        "ci95_pct": [
+          70.144,
+          76.206
+        ],
+        "n": 598,
+        "of": 816,
+        "pct": 73.284
+      },
+      "error_runs_completed_rate": {
+        "ci95_pct": [
+          81.11,
+          86.185
+        ],
+        "n": 678,
+        "of": 809,
+        "pct": 83.807
+      },
+      "known_status_only": {
+        "clean_runs": {
+          "ci95_pct": [
+            97.85,
+            99.544
+          ],
+          "n": 598,
+          "of": 604,
+          "pct": 99.007
+        },
+        "error_runs": {
+          "ci95_pct": [
+            95.782,
+            98.248
+          ],
+          "n": 678,
+          "of": 697,
+          "pct": 97.274
+        },
+        "note": "denominator excludes end_status 'unknown'",
+        "test": {
+          "a": 0.9727403156384505,
+          "b": 0.9900662251655629,
+          "p": 0.023192253075462077,
+          "z": -2.2702527340703824
+        }
+      },
+      "note": "A completed status is the parent's report that the run finished, not a verdict that its work was correct. Read this as 'did the run survive', not 'did it succeed'.",
+      "runs_containing_at_least_one_tool_error": 809,
+      "runs_with_no_tool_error": 816,
+      "test": {
+        "a": 0.8380716934487021,
+        "b": 0.7328431372549019,
+        "p": 2.4087869443780666e-07,
+        "z": 5.164658186258134
+      },
+      "unknown_status_share": {
+        "clean_runs": {
+          "ci95_pct": [
+            23.089,
+            29.097
+          ],
+          "n": 212,
+          "of": 816,
+          "pct": 25.98
+        },
+        "error_runs": {
+          "ci95_pct": [
+            11.635,
+            16.395
+          ],
+          "n": 112,
+          "of": 809,
+          "pct": 13.844
+        }
+      }
+    },
+    "run_length": {
+      "tool_calls_per_subagent_run": {
+        "max": 1054.0,
+        "p50": 24.0,
+        "p90": 80.0,
+        "p95": 113.0,
+        "p99": 198.0
+      }
+    },
+    "subagent_runs": 1626,
+    "unknown_status_note": "'unknown' means the parent transcript held no terminal notification \u2014 usually a synchronous run whose result was consumed inline, or a parent that ended first. It is missing data, not a failure, and is excluded from success-rate denominators below."
+  }
+}

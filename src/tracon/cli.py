@@ -10,8 +10,10 @@ from datetime import datetime
 from pathlib import Path
 
 from tracon import doctor
+from tracon.overtime import cli as over_time_cli
 from tracon.sim.runner import SimConfig, Simulation, simulate
 from tracon.sim.workload import build_workload, replicate_workload
+from tracon.study import cli as study_cli
 from tracon.trace.characterize import characterize
 from tracon.trace.exporter import Exporter
 
@@ -212,7 +214,11 @@ def _cmd_sweep(args: argparse.Namespace) -> int:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="tracon",
-        description="dependency- and session-aware scheduler for agentic LLM workloads",
+        description=(
+            "dependency- and session-aware scheduling for agentic LLM workloads, and the "
+            "measurement it is built on: what happened (doctor), why runs fail (study), "
+            "whether it is getting worse (over-time)"
+        ),
     )
     sub = parser.add_subparsers(dest="command", required=True)
 
@@ -293,6 +299,11 @@ def main(argv: list[str] | None = None) -> int:
         ),
     )
     doctor.set_defaults(func=_cmd_doctor)
+
+    # doctor says what happened here; study says why runs fail at all; over-time
+    # says whether it is getting worse. Same export directory feeds all three.
+    study_cli.add_subcommand(sub)
+    over_time_cli.add_subcommand(sub)
 
     sim = sub.add_parser(
         "simulate",

@@ -17,8 +17,7 @@ traces/
 
 # local planning scratch, never published
 board/
+.scratch/
 
 .DS_Store
 .coverage
-agentfail/
-agent-obs/

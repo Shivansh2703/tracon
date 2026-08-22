@@ -1,7 +1,7 @@
 [project]
 name = "tracon"
 version = "0.1.0"
-description = "Dependency- and session-aware scheduler for agentic LLM workloads"
+description = "Scheduling and measurement for agentic LLM workloads: what happened, why runs fail, and whether it is getting worse"
 authors = [
     { name = "Shivansh", email = "shivansh.sonit@gmail.com" }
 ]
@@ -54,10 +54,31 @@ ignore = [
     "TC001",   # runtime/type-checking import split is churn, not clarity
     "TC002",
     "TC003",
+    "RUF001",  # en dashes in printed ranges ("1.29%–3.57%") are deliberate typography
 ]
 
 [tool.ruff.lint.per-file-ignores]
 "src/tracon/cli.py" = ["T201"]  # a CLI prints
+"src/tracon/study/cli.py" = ["T201", "PLC0415", "PLR0913", "PLR0917"]
+"src/tracon/overtime/cli.py" = ["T201"]
+# The study folded in from its own repo (2026-08-22) where it ran no linter. These are
+# the rules that would mean restructuring analysis code whose numbers are published and
+# whose shape the tests pin — the same exemptions this file already grants the exporter
+# for the same reason. A new module here does not get them.
+"src/tracon/study/analyses/*" = ["C901", "PLR0912", "PLR0915", "PLR2004", "FBT001", "FBT002"]
+"src/tracon/study/adapters/*" = [
+    "A002",     # ExportWriter.tool_call(id=...) mirrors the field name in the export schema
+    "C901",     # one record shape per source corpus; a dispatch table would just move it
+    "PLR0912",
+    "PLR0913",  # the writer's arguments are the event's fields, one per column
+    "PLR0915",
+    "PLR0917",
+    "PLR0911",  # _type_code is a type dispatch table, same as trace/privacy.py's
+    "PLW2901",
+    "UP042",    # str+Enum, not StrEnum: the value is written into JSON
+]
+"src/tracon/study/loader.py" = ["C901", "PLW2901"]
+"src/tracon/study/stats.py" = ["PLR2004"]  # the trend test needs three bins; that is the maths
 "src/tracon/trace/exporter.py" = [
     "C901",     # transcript line dispatch is inherently branchy
     "PLR0913",  # _FileParser wires seven collaborators on purpose
@@ -69,12 +90,19 @@ ignore = [
     "PLR0913",  # the backend has seven real knobs; a config object would just rename them
     "PLR0917",
 ]
-"tests/*" = ["S101", "PLR2004", "SLF001", "INP001", "FBT", "PLR0913", "PLR0917"]
-"scripts/*" = ["T201", "INP001"]  # benches print their tables
+"tests/*" = [
+    "S101", "PLR2004", "SLF001", "INP001", "FBT", "PLR0913", "PLR0917",
+    "A002", "PLC0415", "PLW2901", "PT006", "PT011", "PT018", "RUF059",
+]
+"scripts/*" = ["T201", "INP001", "PLC0415", "PLR2004"]  # benches print their tables
 
 [tool.pytest.ini_options]
 addopts = ["--cov=tracon", "--cov-fail-under=80"]
 testpaths = ["tests"]
+pythonpath = ["src"]  # so a checkout runs its own code, not an installed copy
+markers = [
+    "slow: exercises a real trace export; skipped when that export directory is absent.",
+]
 
 [tool.coverage.run]
 omit = ["*/schedpb/*"]  # protoc-generated

@@ -1,0 +1,1423 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How agentic coding sessions actually fail — an empirical study</title>
+<meta name="description" content="A failure-mode analysis of 85,104 tool calls across 1,854 agent runs — looping, tool errors, the long tail, and context pressure — retested against 94,059 headless tool calls from 13 models, with one finding's scope corrected.">
+<style>
+  :root{
+    color-scheme: light;
+    --plane:      #f9f9f7;
+    --surface:    #fcfcfb;
+    --surface-2:  #f3f2ee;
+    --ink:        #0b0b0b;
+    --ink-2:      #52514e;
+    --ink-muted:  #7d7b74;
+    --hair:       #e1e0d9;
+    --hair-strong:#c3c2b7;
+    --accent:     #2a78d6;
+    --accent-ink: #ffffff;
+    --good:       #0ca30c;
+    --warning:    #b3760a;
+    --serious:    #c15a34;
+    --critical:   #c23b3b;
+    --border:     rgba(11,11,11,0.10);
+    --border-2:   rgba(11,11,11,0.16);
+    --code-bg:    #f0efe9;
+    --limit-bg:   #fbf4ec;
+    --limit-border: #d9a75c;
+    --shadow: 0 1px 2px rgba(11,11,11,0.06);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:where(:not([data-theme="light"])){
+      color-scheme: dark;
+      --plane:      #0d0d0d;
+      --surface:    #161615;
+      --surface-2:  #1d1d1b;
+      --ink:        #f5f5f3;
+      --ink-2:      #c3c2b7;
+      --ink-muted:  #8f8d86;
+      --hair:       #2c2c2a;
+      --hair-strong:#3a3a37;
+      --accent:     #6fa8ec;
+      --accent-ink: #08121c;
+      --good:       #35c235;
+      --warning:    #e0a53a;
+      --serious:    #ec835a;
+      --critical:   #e66767;
+      --border:     rgba(255,255,255,0.10);
+      --border-2:   rgba(255,255,255,0.16);
+      --code-bg:    #1a1a18;
+      --limit-bg:   #23200f;
+      --limit-border: #8a691f;
+      --shadow: 0 1px 2px rgba(0,0,0,0.4);
+    }
+  }
+  :root[data-theme="dark"]{
+    color-scheme: dark;
+    --plane:      #0d0d0d;
+    --surface:    #161615;
+    --surface-2:  #1d1d1b;
+    --ink:        #f5f5f3;
+    --ink-2:      #c3c2b7;
+    --ink-muted:  #8f8d86;
+    --hair:       #2c2c2a;
+    --hair-strong:#3a3a37;
+    --accent:     #6fa8ec;
+    --accent-ink: #08121c;
+    --good:       #35c235;
+    --warning:    #e0a53a;
+    --serious:    #ec835a;
+    --critical:   #e66767;
+    --border:     rgba(255,255,255,0.10);
+    --border-2:   rgba(255,255,255,0.16);
+    --code-bg:    #1a1a18;
+    --limit-bg:   #23200f;
+    --limit-border: #8a691f;
+    --shadow: 0 1px 2px rgba(0,0,0,0.4);
+  }
+  :root[data-theme="light"]{
+    color-scheme: light;
+    --plane:      #f9f9f7;
+    --surface:    #fcfcfb;
+    --surface-2:  #f3f2ee;
+    --ink:        #0b0b0b;
+    --ink-2:      #52514e;
+    --ink-muted:  #7d7b74;
+    --hair:       #e1e0d9;
+    --hair-strong:#c3c2b7;
+    --accent:     #2a78d6;
+    --accent-ink: #ffffff;
+    --good:       #0ca30c;
+    --warning:    #b3760a;
+    --serious:    #c15a34;
+    --critical:   #c23b3b;
+    --border:     rgba(11,11,11,0.10);
+    --border-2:   rgba(11,11,11,0.16);
+    --code-bg:    #f0efe9;
+    --limit-bg:   #fbf4ec;
+    --limit-border: #d9a75c;
+    --shadow: 0 1px 2px rgba(11,11,11,0.06);
+  }
+
+  *{ box-sizing: border-box; }
+  html{ -webkit-text-size-adjust: 100%; }
+  body{
+    margin: 0;
+    background: var(--plane);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, "Helvetica Neue", Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .num, .stat, table td.num, code, .code{
+    font-family: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+  }
+  table{ font-variant-numeric: tabular-nums; }
+
+  a{ color: var(--accent); text-underline-offset: 3px; }
+  a:focus-visible, button:focus-visible, summary:focus-visible{
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .wrap{ max-width: 780px; margin: 0 auto; padding: 0 20px 96px; }
+  .wide{ max-width: 880px; margin: 0 auto; padding: 0 20px; }
+
+  header.masthead{
+    border-bottom: 1px solid var(--hair);
+    background: var(--surface);
+  }
+  .masthead-inner{
+    max-width: 780px; margin: 0 auto; padding: 56px 20px 40px;
+  }
+  .eyebrow{
+    font-size: 12.5px;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+    font-weight: 600;
+    margin: 0 0 14px;
+  }
+  h1{
+    font-size: clamp(28px, 5vw, 40px);
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+    margin: 0 0 16px;
+    text-wrap: balance;
+    font-weight: 700;
+  }
+  .dek{
+    font-size: 18px;
+    color: var(--ink-2);
+    max-width: 62ch;
+    margin: 0 0 24px;
+    text-wrap: balance;
+  }
+  .headline-stats{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 28px;
+    margin-top: 28px;
+    padding-top: 24px;
+    border-top: 1px solid var(--hair);
+  }
+  .headline-stat .v{
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .headline-stat .l{
+    font-size: 12.5px;
+    color: var(--ink-muted);
+    margin-top: 2px;
+  }
+
+  .themetoggle{
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    z-index: 50;
+    background: var(--surface);
+    border: 1px solid var(--border-2);
+    color: var(--ink);
+    border-radius: 7px;
+    padding: 7px 12px;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: var(--shadow);
+  }
+  .themetoggle:hover{ border-color: var(--accent); }
+
+  main{ padding-top: 40px; }
+  section{ margin-bottom: 56px; }
+  section h2{
+    font-size: 22px;
+    letter-spacing: -0.005em;
+    margin: 0 0 6px;
+    padding-top: 8px;
+  }
+  .q-tag{
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+    border-radius: 5px;
+    padding: 2px 7px;
+    margin-bottom: 10px;
+  }
+  .q-prompt{
+    font-size: 15px;
+    font-style: italic;
+    color: var(--ink-2);
+    margin: 0 0 20px;
+    border-left: 2px solid var(--hair-strong);
+    padding-left: 12px;
+  }
+  section p{ margin: 0 0 16px; max-width: 68ch; }
+  section p.wide-p{ max-width: 74ch; }
+  h3{ font-size: 16px; margin: 28px 0 10px; }
+
+  .n{ color: var(--ink-muted); font-size: 0.92em; }
+  strong.figure{ font-weight: 700; }
+
+  /* Correction block — same construction as the limitations block, accent-keyed */
+  .correction{
+    background: color-mix(in srgb, var(--accent) 7%, var(--surface));
+    border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--hair));
+    border-radius: 10px;
+    padding: 26px 26px 22px;
+    margin: 0 0 8px;
+  }
+  .correction .tag{
+    display:flex; align-items:center; gap:8px;
+    font-size: 12.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+  .correction .tag svg{ width:15px; height:15px; flex:none; }
+  .correction p{ color: var(--ink); max-width: 70ch; }
+  .correction p:last-child{ margin-bottom: 0; }
+  .correction .tbl-scroll{ margin-bottom: 16px; }
+  .verdict-ok{ color: var(--good); font-weight: 700; }
+  .verdict-bad{ color: var(--critical); font-weight: 700; }
+  .verdict-open{ color: var(--ink-muted); font-weight: 700; }
+  td.verdict{ white-space: normal; min-width: 15ch; }
+
+  /* Limitations block — same visual weight as findings, deliberately not a footnote */
+  .limitations{
+    background: var(--limit-bg);
+    border: 1px solid var(--limit-border);
+    border-radius: 10px;
+    padding: 26px 26px 22px;
+    margin: 0 0 8px;
+  }
+  .limitations .tag{
+    display:flex; align-items:center; gap:8px;
+    font-size: 12.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--warning);
+    margin-bottom: 12px;
+  }
+  .limitations .tag svg{ width:15px; height:15px; flex:none; }
+  .limitations p{ color: var(--ink); max-width: 70ch; }
+  .limitations ol{ margin: 14px 0 0; padding-left: 22px; }
+  .limitations li{ margin-bottom: 8px; }
+  .limitations .corpus-line{
+    font-weight: 600;
+  }
+
+  /* finding callouts */
+  .finding{
+    background: var(--surface-2);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 8px 8px 0;
+    padding: 16px 20px;
+    margin: 20px 0;
+  }
+  .finding .tag{
+    font-size: 11.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 6px; display:block;
+  }
+  .finding p{ margin: 0; max-width: 66ch; }
+  .finding.negative{ border-left-color: var(--ink-muted); }
+  .finding.negative .tag{ color: var(--ink-muted); }
+  .finding.caution{ border-left-color: var(--warning); }
+  .finding.caution .tag{ color: var(--warning); }
+
+  /* tables */
+  .tbl-scroll{ overflow-x: auto; margin: 4px 0 20px; border: 1px solid var(--hair); border-radius: 8px; }
+  table{
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 460px;
+    font-size: 14.5px;
+    background: var(--surface);
+  }
+  table.wide-tbl{ min-width: 680px; }
+  caption{
+    text-align: left;
+    font-size: 12.5px;
+    color: var(--ink-muted);
+    padding: 10px 14px 0;
+  }
+  th, td{
+    text-align: left;
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--hair);
+    white-space: nowrap;
+  }
+  thead th{
+    font-size: 11.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--ink-muted);
+    font-weight: 600;
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--hair-strong);
+  }
+  tbody tr:last-child td{ border-bottom: none; }
+  td.num, th.num{ text-align: right; font-variant-numeric: tabular-nums; }
+  td.emph{ font-weight: 700; }
+  tr.hl td{ background: color-mix(in srgb, var(--accent) 7%, transparent); }
+
+  /* chart containers */
+  .chart-card{
+    border: 1px solid var(--hair);
+    border-radius: 10px;
+    background: var(--surface);
+    padding: 20px 20px 14px;
+    margin: 8px 0 20px;
+  }
+  .chart-title{ font-size: 13.5px; font-weight: 700; margin: 0 0 2px; }
+  .chart-sub{ font-size: 12.5px; color: var(--ink-muted); margin: 0 0 14px; }
+  .chart-scroll{ overflow-x: auto; }
+  .chart-scroll svg{ display:block; }
+  .chart-legend{
+    display:flex; flex-wrap:wrap; gap: 14px 20px;
+    margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--hair);
+    font-size: 12.5px; color: var(--ink-2);
+  }
+  .chart-legend .item{ display:flex; align-items:center; gap: 7px; }
+  .chart-legend .swatch{ width: 11px; height: 11px; border-radius: 2px; flex: none; }
+  .chart-note{ font-size: 12.5px; color: var(--ink-muted); margin-top: 10px; }
+
+  .svg-axis-label{ fill: var(--ink-muted); }
+  .svg-hair{ stroke: var(--hair); }
+  .svg-ink{ fill: var(--ink); }
+
+  .tt{
+    position: absolute;
+    pointer-events: none;
+    background: var(--ink);
+    color: var(--plane);
+    font-size: 12px;
+    padding: 6px 9px;
+    border-radius: 6px;
+    line-height: 1.4;
+    white-space: nowrap;
+    transform: translate(-50%, calc(-100% - 10px));
+    opacity: 0;
+    transition: opacity 0.08s ease;
+    z-index: 20;
+  }
+  .tt.show{ opacity: 1; }
+  .chart-wrap{ position: relative; }
+
+  footer{
+    border-top: 1px solid var(--hair);
+    padding: 32px 0 0;
+    margin-top: 40px;
+    font-size: 13px;
+    color: var(--ink-muted);
+  }
+  footer .wrap{ padding-bottom: 60px; }
+  footer code{ background: var(--code-bg); padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+
+  .repro{
+    background: var(--code-bg);
+    border: 1px solid var(--hair);
+    border-radius: 8px;
+    padding: 14px 16px;
+    font-size: 13px;
+    overflow-x: auto;
+  }
+  .repro code{ background: none; padding: 0; }
+
+  hr.sep{ border: none; border-top: 1px solid var(--hair); margin: 44px 0; }
+
+  ul.plain{ padding-left: 20px; margin: 0 0 16px; }
+  ul.plain li{ margin-bottom: 7px; }
+
+  @media (max-width: 520px){
+    .masthead-inner{ padding: 44px 16px 32px; }
+    section h2{ font-size: 20px; }
+    .headline-stats{ gap: 20px; }
+    .headline-stat .v{ font-size: 22px; }
+    table{ font-size: 13.5px; }
+    th, td{ padding: 8px 10px; }
+  }
+</style>
+</head>
+<body>
+
+<button class="themetoggle" id="themeToggle" type="button" aria-label="Toggle color theme">Theme: <span id="themeLabel">auto</span></button>
+
+<header class="masthead">
+  <div class="masthead-inner">
+    <p class="eyebrow">Empirical study &middot; agent reliability</p>
+    <h1>How agentic coding sessions actually fail</h1>
+    <p class="dek">A failure-mode analysis of 85,104 tool calls across 1,854 real agent runs, one developer's corpus, one harness, thirty days &mdash; then retested against 94,059 headless tool calls from 13 models. The strongest result is negative and it replicated: error rates do not rise with context pressure. The result about looping was stated too broadly and has been <a href="#correction">corrected</a>.</p>
+    <div class="headline-stats">
+      <div class="headline-stat"><div class="v num">85,104</div><div class="l">tool calls analyzed</div></div>
+      <div class="headline-stat"><div class="v num">1,854</div><div class="l">agent streams</div></div>
+      <div class="headline-stat"><div class="v num">30.2</div><div class="l">days spanned</div></div>
+      <div class="headline-stat"><div class="v num">11</div><div class="l">projects</div></div>
+      <div class="headline-stat"><div class="v num">94,059</div><div class="l">external calls retested against</div></div>
+      <div class="headline-stat"><div class="v num">13</div><div class="l">models, no operator</div></div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+
+    <section id="correction" aria-labelledby="correction-h">
+      <div class="correction">
+        <p class="tag" id="correction-h">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><polyline points="3 4 3 9 8 9"/></svg>
+          Correction &amp; external replication &middot; 3 August 2026
+        </p>
+        <p>This study has now been run against somebody else's data: <strong>94,059 tool calls from 3,895 agent runs by 13 models</strong> from six vendors, in a different harness (OpenHands CodeActAgent) on a different workload (SWE-bench Lite), <strong>with no human in the loop at all</strong>. The same analysis code, a new loading layer. One finding got much stronger, one was stated too broadly and is corrected here, and one cannot be tested on any public data.</p>
+
+        <div class="tbl-scroll">
+          <table class="wide-tbl">
+            <thead><tr><th>Finding</th><th>Verdict externally</th><th>What changed on this page</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>No context-pressure effect <span class="n">(Q4)</span></td>
+                <td class="verdict"><span class="verdict-ok">Replicates, far more strongly</span><br><span class="n">z = &minus;10.80 vs &minus;2.33, on 47,545 joined calls</span></td>
+                <td class="verdict">Its single-operator caveat is <strong>dropped entirely</strong>. It is now the study's strongest result.</td>
+              </tr>
+              <tr>
+                <td>Looping barely exists <span class="n">(Q1, Q2)</span></td>
+                <td class="verdict"><span class="verdict-bad">Contradicted as stated</span><br><span class="n">16.12% blind retry corpus-wide vs 1.76%, z = 20.6</span></td>
+                <td class="verdict">Restated as a claim about <strong>frontier models</strong>, not about &ldquo;agents&rdquo;. Stated about agents it is <strong>false</strong>, and this page previously stated it that way.</td>
+              </tr>
+              <tr>
+                <td>Elapsed time predicts failure <span class="n">(Q3)</span></td>
+                <td class="verdict"><span class="verdict-open">Untestable</span><br><span class="n">benchmark caps duration; tail is 0.22% of calls vs 3.71%</span></td>
+                <td class="verdict">Remains scoped to this corpus. <strong>Neither confirmed nor refuted</strong>, and claimed as neither.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p><strong>The finding that broke, in one sentence.</strong> Blind identical retry across the public corpus is <strong>16.12%</strong>, nine times this study's 1.76% &mdash; but blind retry spans <strong>0.7% to 31.9% across the 13 models inside that one harness</strong>, a wider gap than between the two corpora, and the frontier Claude runs land at 1.8%, 1.2% and 0.7% with stuck runs at 0.3&ndash;3.3%: statistically indistinguishable from this corpus, with no operator present. <strong>The low loop rate was measuring the model, not the man.</strong></p>
+
+        <p><strong>A factual error in this study, found and fixed.</strong> Q4 previously claimed that 81,979 of 85,104 calls join to a context size. <strong>Only 25,199 (29.6%) do</strong> &mdash; the rest reference an <code class="code">api_call</code> absent from the export &mdash; and the joinable subset is biased: 22.5% of <code class="code">Bash</code> calls join against 47.7% of <code class="code">Read</code>, and joined calls error at 2.79% against 3.57% unjoined. The direction of the result is unaffected. The claim that it was &ldquo;the best-powered claim in the study&rdquo; was wrong and has been withdrawn.</p>
+
+        <p><strong>What the limitation is now.</strong> <code class="code">n = 1 operator</code> is <strong>answered</strong>. What replaces it is <code class="code">n = 1 production corpus</code>, and that gap is itself a finding &mdash; see <a href="#gap">below</a>.</p>
+
+        <p class="n"><strong>On provenance.</strong> Every figure on this page about the original corpus is generated from <code class="code">docs/results/study.json</code> by the command in the footer. Every figure about the public replication corpus is <strong>transcribed verbatim from <code class="code">docs/study-replication.md</code></strong> &mdash; none of it is re-derived by hand on this page.</p>
+      </div>
+    </section>
+
+    <section id="limits" aria-labelledby="limits-h">
+      <div class="limitations">
+        <p class="tag">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          Read this before any number
+        </p>
+        <p class="corpus-line">This is one developer's corpus. Every session is one person's own, on his own software projects, in one harness (Claude Code), with his prompting style and his habit of running large subagent fleets. It is not a sample of &ldquo;agents in the wild&rdquo; and it cannot be generalised to other domains or other tools without new data. The sample is large; it is not representative. What <em>has</em> been tested outside it is set out <a href="#correction">above</a>.</p>
+        <p>Six limitations, stated once, applying to everything that follows:</p>
+        <ol id="limits-h">
+          <li><strong><s>Single operator.</s> Answered externally.</strong> One person's prompting, one person's risk tolerance, one person's tooling &mdash; but the behaviour reproduces in a headless harness with no operator at all. What replaces this limitation is <strong>single production corpus</strong>: every public agent dataset is short, step-capped benchmark output, and there is <strong>no public corpus of real production agent sessions at all</strong>.</li>
+          <li><strong>Single harness.</strong> Claude Code, 24 versions across the window. No other agent framework.</li>
+          <li><strong>Single domain.</strong> His own repos &mdash; software engineering, not customer support, not agentic RPA.</li>
+          <li><strong>Content-stripped by design.</strong> The export retains shapes, sizes, ids and timings. It retains no prompt text, no tool arguments, no outputs. This is a privacy posture, and it is the single biggest constraint on what can be asked. Several questions below die on it, and that is reported rather than worked around.</li>
+          <li><strong>Observational.</strong> No interventions, no control group, no ground truth for whether any task was done correctly. &ldquo;Completed&rdquo; throughout means <em>the run finished</em>, never <em>the run was right</em>.</li>
+          <li><strong>Survivorship.</strong> Transcripts deleted or never written are invisible.</li>
+        </ol>
+      </div>
+    </section>
+
+    <section id="method" aria-labelledby="method-h">
+      <h2 id="method-h">Method</h2>
+      <p><strong>Corpus.</strong> A tracon trace export (<code class="code">export-2026-07-30</code>, schema v1): 201,705 normalized events from 1,857 raw transcript files, privacy-stripped at export time. Spans 30.2 days across 11 distinct projects.</p>
+
+      <div class="tbl-scroll">
+        <table>
+          <tbody>
+            <tr><td>Tool calls</td><td class="num">85,104</td></tr>
+            <tr><td>Model API calls</td><td class="num">88,897</td></tr>
+            <tr><td>Streams (units of execution)</td><td class="num">1,854</td></tr>
+            <tr><td>&nbsp;&nbsp;&mdash; main sessions</td><td class="num">228</td></tr>
+            <tr><td>&nbsp;&nbsp;&mdash; subagent runs</td><td class="num">1,626</td></tr>
+            <tr><td>Human prompt arrivals</td><td class="num">4,951</td></tr>
+            <tr><td>Turns</td><td class="num">4,390</td></tr>
+            <tr><td>Context compactions</td><td class="num">38</td></tr>
+            <tr><td>Distinct tools</td><td class="num">64</td></tr>
+            <tr><td>Model families observed</td><td class="num">5</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="n">Model call share: Sonnet 50,663 &middot; Fable 18,580 &middot; Opus&nbsp;4.8 12,502 &middot; Opus&nbsp;5 5,027 &middot; Haiku 2,935.</p>
+
+      <p><strong>Unit of analysis.</strong> A <em>stream</em> is one agentic execution: a main session, or a single subagent run, keyed <code class="code">(session_uuid, agent_id)</code>. Analyses run per stream. Merging a subagent's calls into its parent's would manufacture repetition that never occurred in any one reasoning loop.</p>
+      <p><strong>Statistics.</strong> Every rate carries a Wilson 95% interval (chosen over the normal approximation because several rates here sit near zero). Comparisons use a two-sided two-proportion z-test. The context-pressure question uses a Cochran&ndash;Armitage trend test, so that a flat curve is called flat on evidence rather than by eyeballing.</p>
+      <p><strong>Reproduction.</strong> <code class="code">tracon study report --trace &lt;export-dir&gt; --json docs/results/study.json</code>. Runs in ~3s. <code class="code">--check docs/results/study.json</code> re-runs and fails on any drift.</p>
+    </section>
+
+    <hr class="sep">
+
+    <!-- Q1 -->
+    <section id="q1" aria-labelledby="q1-h">
+      <span class="q-tag">Q1</span>
+      <h2 id="q1-h">Looping and non-termination</h2>
+      <p class="q-prompt">&ldquo;A model looping instead of terminating&rdquo; &mdash; the failure mode named in live job postings.</p>
+
+      <h3>The measurement problem, first</h3>
+      <p class="wide-p">Tool arguments are stripped to a depth-1 <strong>shape</strong>: key names, value types, string lengths. A <code class="code">Bash</code> call becomes <code class="code">command:s78</code>. Two <em>different</em> 78-character shell commands share that shape. &ldquo;The agent repeated the same call&rdquo; is therefore not directly observable, and this study reports a bracket rather than inventing a point estimate:</p>
+      <ul class="plain">
+        <li><strong>Upper bound</strong> &mdash; consecutive calls sharing <code class="code">(tool, args_shape)</code>. Contains every true repeat, plus an unknown number of shape collisions.</li>
+        <li><strong>Lower bound</strong> &mdash; the same, additionally requiring identical <code class="code">result_chars</code>. A repeated call returning an identically-sized result is near-certainly a genuine repeat, but this misses real repeats whose output changed between attempts (<code class="code">git status</code> twice around an edit).</li>
+      </ul>
+      <p>The truth lies between. Both are carried everywhere; neither is collapsed into a headline.</p>
+
+      <h3>Result in this corpus: looping is rare, shallow, and not a failure signature</h3>
+      <div class="tbl-scroll">
+        <table class="wide-tbl">
+          <thead><tr><th>Measure</th><th class="num">Lower bound</th><th class="num">Upper bound</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>Tool calls inside a repeat run</td>
+              <td class="num emph">1.29% <span class="n">[1.22&ndash;1.37] (1,098)</span></td>
+              <td class="num emph">3.57% <span class="n">[3.45&ndash;3.70] (3,037)</span></td>
+            </tr>
+            <tr>
+              <td>Streams with any repeat run</td>
+              <td class="num">10.62% <span class="n">[9.29&ndash;12.12] (194/1,826)</span></td>
+              <td class="num">32.48% <span class="n">[30.37&ndash;34.66] (593/1,826)</span></td>
+            </tr>
+            <tr>
+              <td>Streams with a &ldquo;stuck&rdquo; run (&ge;5 identical calls)</td>
+              <td class="num emph">1.15% <span class="n">[0.75&ndash;1.75] (21/1,826)</span></td>
+              <td class="num emph">2.08% <span class="n">[1.52&ndash;2.84] (38/1,826)</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>Run-length distribution (upper bound, n=1,234 runs): <strong>p50 = 2, p90 = 4, p99 = 10, max = 34.</strong> 980 of 1,234 runs are length 2 &mdash; a repeat of two, which is ordinarily <em>checking something twice</em>, not a loop.</p>
+      <p class="wide-p">The longest run in the entire corpus (34 consecutive <code class="code">WebFetch</code> calls, identical URL length, zero errors) is on inspection a paginated crawl, not a stuck agent. <strong>The most extreme apparent &ldquo;loop&rdquo; in 85,104 calls is a false positive of the detector.</strong> Repeat runs are dominated by <code class="code">Read</code> (676 runs) and <code class="code">Bash</code> (381) &mdash; sequential file inspection, the shape of normal work.</p>
+
+      <p><strong>Does a stuck run predict a bad ending?</strong> Among 1,625 subagent runs: 0 of 24 runs containing a stuck run ended <code class="code">failed</code>/<code class="code">killed</code>, versus 25 of 1,601 without. <strong>No predictive signal &mdash; and with only 25 hard failures corpus-wide, this comparison is underpowered by construction and cannot rule out a real effect.</strong></p>
+
+      <div class="finding negative">
+        <span class="tag">Finding &mdash; scope corrected 3 August 2026</span>
+        <p><strong>Frontier models do not meaningfully loop.</strong> In this corpus &mdash; which ran Anthropic frontier models throughout &mdash; between 1.2% and 2.1% of runs contain anything a human would call stuck, and the deepest example is legitimate pagination. If you are building loop-detection <em>for a frontier-model workload</em>, you are building for a failure mode that occurs in roughly 1 run in 60, and your detector's false-positive rate will likely exceed the phenomenon.</p>
+        <p style="margin-top:10px;"><strong>Stated about &ldquo;agents&rdquo;, this is false</strong> &mdash; and an earlier version of this page stated it that way.</p>
+      </div>
+
+      <h3 id="q1-replication">What the replication did to this finding</h3>
+      <p class="n">Figures in this subsection are transcribed from <code class="code">docs/study-replication.md</code>: 94,059 tool calls, 3,895 headless OpenHands runs on SWE-bench Lite, 13 models, no operator.</p>
+
+      <p class="wide-p"><strong>Corpus-wide, the finding is contradicted.</strong> Blind identical retry is nine times higher, and stuck runs ten times more common:</p>
+
+      <div class="tbl-scroll">
+        <table class="wide-tbl">
+          <thead><tr><th>Measure</th><th class="num">This corpus</th><th class="num">Public corpus</th><th class="num">Test</th></tr></thead>
+          <tbody>
+            <tr><td>Calls inside a repeat run</td><td class="num">1.29% &ndash; 3.57%</td><td class="num emph">7.49% &ndash; 19.48%</td><td class="num">&mdash;</td></tr>
+            <tr><td>Runs with a stuck (&ge;5) run</td><td class="num">1.15% &ndash; 2.08%</td><td class="num emph">11.93% &ndash; 25.01%</td><td class="num">&mdash;</td></tr>
+            <tr class="hl"><td>Blind identical retry after an error</td><td class="num emph">1.76% <span class="n">(50/2,843)</span></td><td class="num emph">16.12% <span class="n">(4,657/28,886)</span></td><td class="num">z = 20.6, p = 6.5e&minus;94</td></tr>
+            <tr><td>Adaptive next action</td><td class="num">96.94%</td><td class="num">80.10%</td><td class="num">&mdash;</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="wide-p"><strong>But the 13 models do not agree with each other, and that is the whole result.</strong> Blind-retry rate spans <strong>0.7% to 31.9% inside one harness</strong> &mdash; a 45&times; range, wider than the gap between the two corpora.</p>
+
+      <div class="chart-card" id="chart-models-card">
+        <p class="chart-title">Blind retry after an error, by model &mdash; one harness, 13 models</p>
+        <p class="chart-sub">Share of tool errors followed by an identical retry. The dashed line is this study's 1.76%. The three frontier Claude runs sit on it; the rest of the field does not.</p>
+        <div class="chart-wrap">
+          <div class="chart-scroll"><svg id="chart-models" role="img" aria-label="Horizontal bar chart of blind retry rate by model in the public corpus. Claude 3.5 Sonnet v2.2 0.7 percent, Claude 3.5 Haiku 1.2 percent, Claude 3.5 Sonnet v2.1 1.8 percent, Claude 3.5 Sonnet 20240620 6.3 percent, Llama 3.2 90B 8.6 percent, Llama 3.1 70B 9.9 percent, o1-mini 10.8 percent, DeepSeek Chat 12.6 percent, GPT-4o 13.5 percent, GPT-4o mini 13.7 percent, Qwen 2.5 72B 20.1 percent, DeepSeek v2.5 28.1 percent, Llama 3.3 70B 31.9 percent. This study's corpus is 1.76 percent."></svg></div>
+          <div class="tt" id="tt-models"></div>
+        </div>
+        <div class="chart-legend" id="legend-models"></div>
+        <p class="chart-note">Transcribed from <code>docs/study-replication.md</code> &sect;5. Stuck-run rates track the same ordering: 0.3&ndash;3.3% on the frontier Claude runs against 41.1% on Llama 3.3 70B.</p>
+      </div>
+
+      <p class="wide-p">The frontier numbers are statistically indistinguishable from this corpus's 1.76% blind retry and 1.15&ndash;2.08% stuck runs &mdash; in a different harness, on a different workload, with no human present at any point. That is a direct answer to this study's own stated weakness: <strong>the low loop rate was measuring the model, not the operator.</strong></p>
+
+      <h3>And now there is ground truth, which this corpus never had</h3>
+      <p class="wide-p">Nothing in this study can say whether a run was <em>right</em>. SWE-bench scores 2,253 of the public runs against the repository's own tests, and the loop signal turns out to be expensive:</p>
+
+      <div class="tbl-scroll">
+        <table class="wide-tbl">
+          <thead><tr><th>Runs that&hellip;</th><th class="num">Resolved their bug</th><th class="num">Test</th></tr></thead>
+          <tbody>
+            <tr class="hl"><td>contain a stuck repeat run</td><td class="num emph">14.43% <span class="n">[11.63&ndash;17.76] (73/506)</span></td><td class="num">z = &minus;10.16, p = 2.9e&minus;24</td></tr>
+            <tr><td>contain no stuck repeat run</td><td class="num emph">38.58% <span class="n">[36.33&ndash;40.89] (674/1,747)</span></td><td class="num">&mdash;</td></tr>
+            <tr><td>were flagged looping by the harness</td><td class="num">6.87% <span class="n">[4.96&ndash;9.45] (34/495)</span></td><td class="num">z = &minus;14.06, p = 6.3e&minus;45</td></tr>
+            <tr><td>contain &ge;1 tool error</td><td class="num">32.19% <span class="n">[30.14&ndash;34.31] (618/1,920)</span></td><td class="num">z = &minus;2.34, p = 0.019</td></tr>
+            <tr><td>contain no tool error</td><td class="num">38.74% <span class="n">[33.66&ndash;44.07] (129/333)</span></td><td class="num">&mdash;</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="finding">
+        <span class="tag">The useful conclusion, which neither corpus gave on its own</span>
+        <p>A stuck repeat run cuts the chance of a correct answer by <strong>2.7&times;</strong> &mdash; 38.6% resolved to 14.4%. A tool error barely matters, consistent with this study's finding that error handling is not where runs die. So the advice is <em>conditional</em> rather than wrong: <strong>loop detection is genuinely not worth building for a frontier-model workload, and it is worth building for a mixed-model one</strong>, where the phenomenon is 1 run in 5 and each occurrence costs most of the run's chance of being right.</p>
+      </div>
+
+      <h3>How wide is the shape-collision bracket, really?</h3>
+      <p class="wide-p">This corpus cannot observe repeats directly &mdash; hence the bracket above. The public corpus keeps the real arguments, so the identical analysis was run twice: once over this study's lossy shape fingerprint, once over a hash of the actual arguments.</p>
+
+      <div class="tbl-scroll">
+        <table>
+          <thead><tr><th></th><th class="num">Calls inside a repeat run</th></tr></thead>
+          <tbody>
+            <tr><td>Shape lower bound <span class="n">(this study's method)</span></td><td class="num">7.49%</td></tr>
+            <tr class="hl"><td><strong>Exact arguments</strong> <span class="n">(ground truth)</span></td><td class="num emph">16.42%</td></tr>
+            <tr><td>Shape upper bound <span class="n">(this study's method)</span></td><td class="num">19.48%</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="wide-p">The truth lands <strong>74% of the way from the lower bound to the upper</strong>: the lower bound understates by 8.9pp, the upper overstates by 3.1pp. The bracket does contain the truth &mdash; but anyone reading <code class="code">1.29% &ndash; 3.57%</code> as &ldquo;probably around 1.3%&rdquo; is reading it wrong. <strong>Quote the upper bound as the working estimate, not the midpoint.</strong> <span class="n">(Caveat: collision rate depends on the argument-length distribution, and a corpus with three tools collides more than one with sixty-four. This calibrates the method, not this corpus's specific numbers.)</span></p>
+    </section>
+
+    <hr class="sep">
+
+    <!-- Q2 -->
+    <section id="q2" aria-labelledby="q2-h">
+      <span class="q-tag">Q2</span>
+      <h2 id="q2-h">Tool failures and what the agent does next</h2>
+      <p><strong>Overall tool-call error rate: 3.34%</strong> <span class="n">[3.22&ndash;3.46] (2,843 / 85,104)</span>.</p>
+
+      <div class="tbl-scroll">
+        <table>
+          <thead><tr><th>Tool</th><th class="num">n</th><th class="num">Error rate</th></tr></thead>
+          <tbody>
+            <tr><td>Edit</td><td class="num">7,771</td><td class="num emph">6.12% <span class="n">[5.61&ndash;6.68]</span></td></tr>
+            <tr><td>AskUserQuestion</td><td class="num">246</td><td class="num">6.91% <span class="n">[4.36&ndash;10.79]</span></td></tr>
+            <tr><td>Write</td><td class="num">1,910</td><td class="num">3.67% <span class="n">[2.91&ndash;4.61]</span></td></tr>
+            <tr><td>Bash</td><td class="num">53,155</td><td class="num">3.61% <span class="n">[3.45&ndash;3.77]</span></td></tr>
+            <tr><td>WebFetch</td><td class="num">617</td><td class="num">3.08% <span class="n">[1.98&ndash;4.76]</span></td></tr>
+            <tr><td>Skill</td><td class="num">246</td><td class="num">2.85% <span class="n">[1.39&ndash;5.76]</span></td></tr>
+            <tr><td>Read</td><td class="num">12,016</td><td class="num">1.22% <span class="n">[1.04&ndash;1.44]</span></td></tr>
+            <tr><td>Agent</td><td class="num">1,596</td><td class="num">1.06% <span class="n">[0.67&ndash;1.70]</span></td></tr>
+            <tr><td>SendMessage</td><td class="num">3,207</td><td class="num">0.12% <span class="n">[0.05&ndash;0.32]</span></td></tr>
+            <tr><td>WebSearch</td><td class="num">828</td><td class="num">0.00% <span class="n">[0&ndash;0.46]</span></td></tr>
+            <tr><td>ToolSearch</td><td class="num">1,074</td><td class="num">0.00% <span class="n">[0&ndash;0.36]</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="wide-p"><code class="code">Edit</code> is the most error-prone tool in real use at nearly 2x the <code class="code">Bash</code> rate &mdash; the string-match precondition (<code class="code">old_string</code> must match exactly and uniquely) fails often enough to be the single largest recoverable-error source after raw shell.</p>
+
+      <h3>What follows a failed call</h3>
+      <p>Structure of the very next tool call after an error (n = 2,843):</p>
+      <div class="tbl-scroll">
+        <table>
+          <thead><tr><th>Next action</th><th class="num">Share</th></tr></thead>
+          <tbody>
+            <tr class="hl"><td>Same tool, <strong>different</strong> arguments</td><td class="num emph">64.23% <span class="n">[62.45&ndash;65.97] (1,826)</span></td></tr>
+            <tr><td>Switched to a different tool</td><td class="num">32.71% <span class="n">[31.01&ndash;34.46] (930)</span></td></tr>
+            <tr><td><strong>Identical retry</strong> (same tool, same shape)</td><td class="num emph">1.76% <span class="n">[1.34&ndash;2.31] (50)</span></td></tr>
+            <tr><td>No further tool call in the stream</td><td class="num">1.30% <span class="n">[0.95&ndash;1.79] (37)</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>And the model response that consumed the failed result (n = 2,843):</p>
+      <div class="tbl-scroll">
+        <table>
+          <thead><tr><th></th><th class="num">Share</th></tr></thead>
+          <tbody>
+            <tr><td>Kept acting (issued another tool)</td><td class="num emph">95.78% <span class="n">(2,723)</span></td></tr>
+            <tr><td>Text-only response &mdash; stopped working</td><td class="num">3.87% <span class="n">(110)</span></td></tr>
+            <tr><td>No further model call at all</td><td class="num">0.35% <span class="n">(10)</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="finding negative">
+        <span class="tag">Finding</span>
+        <p><strong>Error handling is the strongest behaviour in this corpus.</strong> After a tool failure the agent adapts &mdash; different arguments or a different tool &mdash; in 96.9% of cases, and retries blindly in 1.76%. The &ldquo;dumb retry loop&rdquo; is essentially absent (50 occurrences in 85,104 calls).</p>
+        <p style="margin-top:10px;"><strong>Scope, the same correction as Q1.</strong> This is a property of the <em>models</em>, not of agents generally. Across 13 models running headless, adaptive response falls to 80.10% and blind retry rises to 16.12% &mdash; but the frontier Claude runs in that corpus retry blindly at 0.7&ndash;1.8%, matching this corpus. Read it as <em>frontier models handle errors well</em>, never as <em>agents do</em>.</p>
+      </div>
+
+      <h3>The money question: does it proceed on a failed result?</h3>
+      <p class="wide-p">This is what the market screens for, and <strong>the traces cannot answer it directly.</strong> Whether the model's next sentence acknowledged the error, or silently built on a broken result, is a fact about content &mdash; and content is stripped. What can be measured is one structural proxy:</p>
+      <p><strong>Runs that reported <code class="code">completed</code> while their trace still held an error never demonstrably resolved: 6.27%</strong> <span class="n">[5.07&ndash;7.74] (80 / 1,276 completed subagent runs)</span>. Runs whose <em>final</em> tool call errored and still reported completed: <strong>1.65%</strong> <span class="n">[1.08&ndash;2.50] (21/1,276)</span>.</p>
+      <p>For contrast, the same proxy on runs that ended <code class="code">failed</code> is 26.3% (5/19) and <code class="code">killed</code> 33.3% (2/6) &mdash; the proxy does track badness, which is weak evidence it is measuring something real.</p>
+
+      <div class="finding caution">
+        <span class="tag">Caveats that materially weaken this number, in both directions</span>
+        <p>&ldquo;Resolved&rdquo; is defined as a later success of the <em>same tool</em> in the same stream &mdash; generous, so 6.27% is a floor on unresolved errors but an over-count of <em>ignored</em> ones, since an agent may have correctly reported the failure as a limitation in its final message. That message is not in the export.</p>
+      </div>
+      <div class="finding caution">
+        <span class="tag">Honest verdict</span>
+        <p>6.27% is the most interesting number in this study and the least safe. It is a structural proxy for &ldquo;declared success with unfinished business&rdquo;, not an observation of an agent proceeding on a failed result. Anyone quoting it should quote the caveat with it.</p>
+      </div>
+    </section>
+
+    <hr class="sep">
+
+    <!-- Q3 -->
+    <section id="q3" aria-labelledby="q3-h">
+      <span class="q-tag">Q3</span>
+      <h2 id="q3-h">The long tail: 3.7% of calls, 75% of the wall clock</h2>
+      <p class="wide-p">Confirmed on this corpus: <strong>3,153 calls &ge;60s (3.71% of calls) hold 75.08% of all tool time</strong> (246.1 tool-hours total). The reliability question is what they <em>are</em>. Classification is structural &mdash; by tool identity and outcome, never by guessing intent.</p>
+
+      <div class="tbl-scroll">
+        <table class="wide-tbl">
+          <thead>
+            <tr><th>Threshold</th><th class="num">Calls</th><th class="num">% of calls</th><th class="num">% of tool time</th><th class="num">Heavy work</th><th class="num">Errored</th><th class="num">Waiting&nbsp;human</th><th class="num">Waiting&nbsp;agent</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>&ge;10s</td><td class="num">7,507</td><td class="num">8.83%</td><td class="num">86.88%</td><td class="num">85.6%</td><td class="num">8.3%</td><td class="num">3.2%</td><td class="num">2.9%</td></tr>
+            <tr><td>&ge;30s</td><td class="num">4,360</td><td class="num">5.13%</td><td class="num">80.94%</td><td class="num">82.4%</td><td class="num">9.5%</td><td class="num">4.3%</td><td class="num">3.8%</td></tr>
+            <tr class="hl"><td class="emph">&ge;60s</td><td class="num emph">3,153</td><td class="num emph">3.71%</td><td class="num emph">75.08%</td><td class="num emph">81.4%</td><td class="num emph">10.2%</td><td class="num emph">4.3%</td><td class="num emph">4.1%</td></tr>
+            <tr><td>&ge;5min</td><td class="num">396</td><td class="num">0.47%</td><td class="num">36.94%</td><td class="num">71.0%</td><td class="num">16.7%</td><td class="num">5.8%</td><td class="num">6.6%</td></tr>
+            <tr><td>&ge;10min</td><td class="num">90</td><td class="num">0.11%</td><td class="num">23.14%</td><td class="num">46.7%</td><td class="num emph">27.8%</td><td class="num">13.3%</td><td class="num">12.2%</td></tr>
+            <tr><td>&ge;30min <span class="n">(n=8)</span></td><td class="num">8</td><td class="num">0.01%</td><td class="num">16.29%</td><td class="num">37.5%</td><td class="num emph">50.0%</td><td class="num">&mdash;</td><td class="num">12.5%</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="chart-card" id="chart-ladder-card">
+        <p class="chart-title">Error rate rises with call duration</p>
+        <p class="chart-sub">Share of calls in each duration bucket that errored. Sample sizes labeled on each bar; the &ge;30min bucket is n=8 and shown for completeness, not for weight.</p>
+        <div class="chart-wrap">
+          <div class="chart-scroll"><svg id="chart-ladder" role="img" aria-label="Bar chart: error rate by call duration. Under 60 seconds 3.07 percent of 81,913 calls. 60 seconds and over 10.21 percent of 3,153 calls. 10 minutes and over 27.8 percent of 90 calls. 30 minutes and over 50.0 percent of 8 calls."></svg></div>
+          <div class="tt" id="tt-ladder"></div>
+        </div>
+        <p class="chart-note">z = 21.9, p &asymp; 1.5e&minus;106 for &lt;60s vs &ge;60s (n = 81,913 vs 3,153). The &ge;30min point (n=8) is too small to lean on.</p>
+      </div>
+
+      <p>Two things fall out, one expected and one not.</p>
+      <p class="wide-p"><strong>Expected: the bulk of the tail is real work.</strong> At the &ge;60s threshold, 81% of calls are successful non-waiting work &mdash; builds, test suites, installs. <code class="code">Bash</code> is 2,835 of the 3,153. The long tail is mostly a <em>scheduling</em> fact, not a reliability one.</p>
+      <p class="wide-p"><strong>Not expected: slowness is a strong failure signal, and it sharpens monotonically.</strong> Calls &ge;60s error at <strong>10.21%</strong> <span class="n">[9.20&ndash;11.32]</span> versus <strong>3.07%</strong> <span class="n">[2.95&ndash;3.19]</span> for calls under 60s &mdash; a 3.3x enrichment, <strong>z = 21.9, p &asymp; 1.5e&minus;106</strong> (n = 3,153 vs 81,913). By &ge;10 minutes, 27.8% of calls are errors (n=90). By &ge;30 minutes, half are (n=8 &mdash; too small to lean on).</p>
+
+      <div class="finding">
+        <span class="tag">Finding</span>
+        <p>Elapsed time is the single best cheap predictor of tool failure available in this data. It needs no model, no content, no semantics &mdash; just a clock. A tool call that has been running 10 minutes is roughly 9x likelier to end in an error than a typical call.</p>
+      </div>
+
+      <div class="finding caution">
+        <span class="tag">Untestable externally, and reported as untestable</span>
+        <p><em>Transcribed from <code class="code">docs/study-replication.md</code>.</em> The public benchmark harness caps command duration, so its &ge;60s tail is <strong>0.22% of calls against 3.71% here</strong> &mdash; 208 calls out of 94,059, with p99 at 7.5 seconds. The sign there is the same (40.87% vs 30.69%, a 1.33&times; enrichment, z = 3.18, p = 0.0015), but the effect dies under the shell-only sensitivity check, where every error is a real process exit code: <strong>1.05&times; (41.54% vs 39.58%, p = 0.58)</strong>. There is also a mechanism cutting against it there &mdash; a long command in that harness is often long <em>because</em> it is about to be killed by a timeout, which is itself recorded as a non-zero exit.</p>
+        <p style="margin-top:10px;"><strong>Neither confirmed nor refuted, and claimed as neither. This finding remains scoped to this corpus</strong> until somebody publishes production traces with an untruncated tail. Finding 1 is a claim about a tail that a benchmark harness does not permit to exist.</p>
+      </div>
+
+      <p class="wide-p">Also worth naming: <strong>4.3% of &ge;60s calls are the agent waiting on a human</strong> (<code class="code">AskUserQuestion</code>, <code class="code">ExitPlanMode</code> &mdash; 147 calls). Any latency budget that counts these as agent slowness is measuring the operator's response time and calling it a model problem.</p>
+
+      <div class="chart-card" id="chart-stack-card">
+        <p class="chart-title">What the long tail is made of</p>
+        <p class="chart-sub">Composition by share of calls at each threshold. Heavy work dominates until &ge;10min, where errors take over.</p>
+        <div class="chart-wrap">
+          <div class="chart-scroll"><svg id="chart-stack" role="img" aria-label="Stacked bar chart of call composition by duration threshold, showing heavy work, errored, waiting on human, and waiting on agent shares."></svg></div>
+          <div class="tt" id="tt-stack"></div>
+        </div>
+        <div class="chart-legend" id="legend-stack"></div>
+      </div>
+
+      <p class="wide-p"><strong>Extreme tail.</strong> The single longest call in the corpus is a <code class="code">Bash</code> invocation running <strong>1,758.8 minutes (29.3 hours)</strong> that returned <em>successfully</em> with a 49-character result &mdash; a hung process nobody's watchdog caught. <strong>25 calls (0.029%) never returned at all</strong> (no <code class="code">tool_result</code> on disk &mdash; the stream died mid-call); 23 of the 25 are <code class="code">Bash</code>.</p>
+    </section>
+
+    <hr class="sep">
+
+    <!-- Q4 -->
+    <section id="q4" aria-labelledby="q4-h">
+      <span class="q-tag">Q4</span>
+      <h2 id="q4-h">Do failures cluster near context limits or compaction?</h2>
+      <p class="wide-p">The folk claim is that agents degrade as context fills. This corpus can test it: a tool call joins back to the model call that issued it, which reports exactly how many input tokens the model was holding.</p>
+
+      <div class="finding caution">
+        <span class="tag">Correction, 3 August 2026</span>
+        <p>An earlier version of this section claimed that <strong>81,979</strong> of 85,104 calls join to a context size. That figure was wrong and was never what the code computed: <strong>25,199 calls (29.6%) join</strong>, and the other 59,905 carry an <code class="code">api_uuid</code> that appears nowhere in the export as an <code class="code">api_call</code>. The joinable subset is also <strong>not random</strong> &mdash; 22.5% of <code class="code">Bash</code> calls join against 47.7% of <code class="code">Read</code>, and joined calls carry a <em>lower</em> error rate (2.79%) than unjoined ones (3.57%). Everything below is computed on that 30% subset. The direction of the result is unaffected; the claim that this was the study's best-powered finding is withdrawn.</p>
+      </div>
+
+      <p><strong>Error rate does not rise with context size. It falls slightly.</strong></p>
+
+      <div class="chart-card" id="chart-context-card">
+        <p class="chart-title">Error rate across the context window</p>
+        <p class="chart-sub">13 bins of 25k tokens, 0 to 300k+. The curve is flat within noise &mdash; no upward slope as context fills.</p>
+        <div class="chart-wrap">
+          <div class="chart-scroll"><svg id="chart-context" role="img" aria-label="Line chart of tool call error rate across 13 context-size bins from 0 to 300k plus tokens, showing a roughly flat curve between 1.5 and 3.6 percent."></svg></div>
+          <div class="tt" id="tt-context"></div>
+        </div>
+        <p class="chart-note">Unstratified Cochran&ndash;Armitage trend: z = &minus;2.33, p = 0.020 (weak negative &mdash; the opposite of the folk claim).</p>
+      </div>
+
+      <p class="wide-p">Before anyone reads that as &ldquo;bigger context is safer&rdquo;, the obvious confound: tool mix shifts hard with context size (<code class="code">Read</code> falls from 45.7% of calls in the 0&ndash;25k bin to 11.8% at 300k+, while <code class="code">Edit</code> rises from ~4% to ~16%), and tools have very different error rates. Stratifying inside single tools:</p>
+
+      <div class="tbl-scroll">
+        <table>
+          <thead><tr><th></th><th class="num">Calls</th><th>Trend test</th></tr></thead>
+          <tbody>
+            <tr><td>Bash</td><td class="num">11,967</td><td class="num">z = &minus;1.84, p = 0.066 <span class="n">(n.s.)</span></td></tr>
+            <tr><td>Edit</td><td class="num">3,660</td><td class="num">z = &minus;1.03, p = 0.303 <span class="n">(n.s.)</span></td></tr>
+            <tr><td>Read</td><td class="num">5,732</td><td class="num">z = &minus;2.35, p = 0.019</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p><strong>The effect does not survive stratification in the two largest tools.</strong> One of three tools shows a weak negative trend at p = 0.019, uncorrected for three comparisons.</p>
+
+      <div class="finding negative">
+        <span class="tag">Finding (negative) &mdash; the study's strongest result, because it replicated</span>
+        <p>There is no evidence that tool-call failures increase with context pressure in this corpus, across 25,199 joined calls spanning 0 to 300k+ tokens. Any weak trend present runs in the <em>opposite</em> direction to the folk claim and does not survive controlling for tool mix.</p>
+        <p style="margin-top:10px;"><strong>And it replicates externally, far more strongly:</strong> <strong>z = &minus;10.80, p = 3.4e&minus;27 across 47,545 joined calls</strong> from 13 models in a different harness with no operator present, against z = &minus;2.33 here &mdash; roughly five times the test statistic, in a corpus sharing nothing with this one but the analysis code. <strong>This finding carries no caveat about operator, harness or model family any more.</strong></p>
+      </div>
+
+      <h3>What the replication found here</h3>
+      <p class="n">Transcribed from <code class="code">docs/study-replication.md</code>.</p>
+      <p class="wide-p"><strong>The folk claim fails in both corpora.</strong> In neither does error rate climb as the context window fills. The public corpus runs 30.7% &rarr; 29.5% &rarr; 25.5% &rarr; 22.2% &rarr; 22.5% &rarr; 24.4% &rarr; 19.6% across its 25k bins. Two honest complications the public data can see and this corpus cannot:</p>
+
+      <p class="wide-p"><strong>Stratification splits the effect rather than simply surviving it.</strong> Inside single tools there, <code class="code">run_ipython</code> (n = 28,528) gives z = &minus;15.97, while <code class="code">run</code> &mdash; the shell (n = 19,017) &mdash; gives <strong>z = +3.42, p = 0.00063</strong>: the one curve that rises. But that curve is not monotone (32.1% &rarr; 37.0% &rarr; 38.2% &rarr; 32.3% &rarr; 30.0%). It humps at 50&ndash;75k and then falls, and a linear trend test is a poor summary of a hump.</p>
+
+      <p class="wide-p"><strong>Both corpora hump in the same place.</strong> This one climbs 1.6% &rarr; 2.5% &rarr; 3.6% over its first three bins before flattening &mdash; errors rising over roughly the first 50&ndash;75k of context, then falling. That shared shape is more interesting than either corpus's overall sign, and <strong>neither study is powered to say whether it is real degradation or a shift in what the agent is doing at that stage.</strong> It is named here as an open question, not as a result.</p>
+
+      <p class="wide-p"><strong>Compaction is unanswerable here for lack of data.</strong> Only <strong>38 compaction events</strong> exist corpus-wide (33 manual, 5 automatic) across 26 streams. Error rate in the 10 minutes after a compaction: 3.87% (27/698) versus a 3.34% baseline &mdash; <strong>p = 0.44, indistinguishable</strong>. With 38 events this comparison can rule out a large effect and nothing smaller. <strong>Reported as underpowered, not as null.</strong> The replication cannot help: the public corpus has <em>no</em> compaction events at all &mdash; OpenHands does not compact, it errors out (12 runs died on a <code class="code">ContextWindowExceededError</code>).</p>
+    </section>
+
+    <hr class="sep">
+
+    <!-- Q5 -->
+    <section id="q5" aria-labelledby="q5-h">
+      <span class="q-tag">Q5</span>
+      <h2 id="q5-h">Premature confidence: unanswerable from this data</h2>
+      <p class="q-prompt">&ldquo;A model deciding it has enough information when it doesn't.&rdquo;</p>
+
+      <div class="finding caution">
+        <span class="tag">This corpus cannot measure this</span>
+        <p>No number in this study should be read as if it does.</p>
+      </div>
+
+      <p class="wide-p">The claim has two components: what the agent concluded, and whether that conclusion was warranted. The export holds neither &mdash; content is stripped by design, and there is no ground truth anywhere in the corpus for whether a task was done correctly. No amount of cleverness with timings and shapes recovers a judgement about the sufficiency of evidence.</p>
+      <p class="wide-p">The one shape that can be measured, offered as a bound on <em>suspicion</em> rather than a failure rate: <strong>2.04%</strong> <span class="n">[1.39&ndash;2.97] (26/1,276)</span> of completed subagent runs finished with &le;2 tool calls. The distribution of evidence-gathering among completed runs is otherwise healthy &mdash; 1,065 of 1,276 made 10+ tool calls (median 24 calls per run, p95 113, max 1,054). A run that made two tool calls may have been given a two-tool-call task; nothing here distinguishes that from a run that gave up early.</p>
+
+      <div class="finding caution">
+        <span class="tag">Reporting an unanswerable question as unanswerable is the result</span>
+        <p>A soft proxy dressed as a measurement of premature confidence would be the single easiest number in this study to fabricate, and the one most likely to be believed.</p>
+      </div>
+    </section>
+
+    <hr class="sep">
+
+    <!-- Q6 -->
+    <section id="q6" aria-labelledby="q6-h">
+      <span class="q-tag">Q6</span>
+      <h2 id="q6-h">Recovery: does a run that goes wrong come back?</h2>
+      <p class="wide-p">Scoped to the 1,626 subagent runs, the only executions carrying a machine-recorded outcome (main sessions have no completion record &mdash; a human closed them).</p>
+
+      <div class="tbl-scroll">
+        <table>
+          <thead><tr><th>End status</th><th class="num">Share</th></tr></thead>
+          <tbody>
+            <tr><td>completed</td><td class="num emph">78.48% <span class="n">[76.41&ndash;80.40] (1,276)</span></td></tr>
+            <tr><td><strong>unknown</strong></td><td class="num">19.99% <span class="n">[18.12&ndash;22.00] (325)</span></td></tr>
+            <tr><td>failed</td><td class="num">1.17% <span class="n">[0.75&ndash;1.82] (19)</span></td></tr>
+            <tr><td>killed</td><td class="num">0.37% <span class="n">[0.17&ndash;0.80] (6)</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p><strong>Hard failure rate: 1.54%</strong> <span class="n">[1.04&ndash;2.26] (25/1,626)</span>. <code class="code">unknown</code> is <em>missing data</em>, not failure &mdash; usually a synchronous run consumed inline, or a parent that ended first.</p>
+
+      <div class="finding caution">
+        <span class="tag">The naive recovery comparison is a trap, and this study fell into it before catching it</span>
+        <p class="wide-p">Raw completion rate for runs containing a tool error is 83.8% versus 73.3% for clean runs (p = 2.4e&minus;7) &mdash; apparently <em>errors help</em>. They do not. <code class="code">unknown</code> is unevenly distributed: 25.98% of clean runs have no recorded outcome versus 13.84% of error-containing runs, because short synchronous runs are both less likely to hit an error and less likely to emit a notification. The comparison was measuring observability.</p>
+      </div>
+
+      <p>Restricted to runs whose outcome was actually recorded:</p>
+      <div class="tbl-scroll">
+        <table>
+          <thead><tr><th></th><th class="num">Completion rate</th></tr></thead>
+          <tbody>
+            <tr><td>Runs containing &ge;1 tool error</td><td class="num emph">97.27% <span class="n">[95.78&ndash;98.25] (678/697)</span></td></tr>
+            <tr><td>Runs with no tool error</td><td class="num emph">99.01% <span class="n">[97.85&ndash;99.54] (598/604)</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p><strong>z = &minus;2.27, p = 0.023.</strong></p>
+
+      <div class="finding">
+        <span class="tag">Finding</span>
+        <p>Recovery is the norm, and the cost of an error is small but real. Hitting a tool error costs a run roughly <strong>1.7 percentage points</strong> of completion probability (97.3% vs 99.0%). Agents in this corpus overwhelmingly recover without human intervention.</p>
+      </div>
+      <p class="wide-p">The load-bearing caveat: <code class="code">completed</code> means the run <em>finished and reported</em>, not that its work was correct. This measures survival, not success. A run that recovered from an error and then produced a wrong answer is counted here as a recovery.</p>
+    </section>
+
+    <hr class="sep">
+
+    <section id="nearmiss" aria-labelledby="nearmiss-h">
+      <h2 id="nearmiss-h">The near-miss, published on purpose</h2>
+      <p class="q-prompt">The replication agent caught a bug in its own work that had already produced a full set of plausible, wrong headline numbers.</p>
+
+      <p class="wide-p">Eight of the thirteen public runs store their history as <code class="code">[action, observation]</code> pairs rather than as a flat list. <strong>The first version of the loading adapter silently skipped all eight.</strong></p>
+
+      <div class="finding caution">
+        <span class="tag">What that means concretely</span>
+        <p><strong>2,398 of 3,895 runs registered zero tool calls</strong>, and every headline number in the replication was quietly computed from the five newest runs. <strong>It raised no error. Nothing crashed, nothing warned, and the output looked entirely plausible</strong> &mdash; a clean corpus, sensible rates, tables that would have survived a skim. It was caught only by noticing that <code class="code">streams_with_tool_calls</code> was 1,497 when the corpus contained 3,895 streams.</p>
+      </div>
+
+      <p class="wide-p">This is reported prominently rather than buried in a methods note for two reasons. First, it is <strong>precisely the bug class this whole project exists to find</strong> &mdash; a silent, plausible, wrong number produced by an agent that had no way to know it was wrong &mdash; and it was found inside this project's own analysis, by the analysis's own author. Second, the general point survives the fix: <strong>an adapter fails quietly, and every figure quoted from the replication depends on one.</strong> A regression test pins the pair-format path now. That is a guard, not a proof.</p>
+
+      <p class="wide-p n">The honest reading of this page's provenance is therefore: figures about the original corpus are regenerated on every run and drift-checked; figures about the public corpus are transcribed from <code class="code">docs/study-replication.md</code>, which itself rests on one loading layer that has already been wrong once.</p>
+    </section>
+
+    <hr class="sep">
+
+    <section id="gap" aria-labelledby="gap-h">
+      <h2 id="gap-h">The gap that is itself a finding</h2>
+
+      <p class="wide-p">Three independent surveys checked every public candidate that publishes anything, verifying at source rather than from memory. <strong>Agent benchmarks publish scores, and essentially only scores.</strong> Of everything checked, exactly one corpus carried all four fields these questions need &mdash; per-call wall-clock timing, tool identity, a success/failure signal, and per-call context tokens &mdash; and it is benchmark output. Terminal-Bench 2.0 publishes ~121 GB of real submissions and was rejected because its steps carry no error signal of any kind. HAL's traces ship encrypted. The large trajectory datasets are text blobs.</p>
+
+      <div class="finding">
+        <span class="tag">Stated as a result, not as a lament</span>
+        <p><strong>There is no public corpus of real production agent sessions at all.</strong> Every usable public dataset is short, step-capped benchmark output with no human in the loop. So <code class="code">n = 1 operator</code> is answered &mdash; and <strong><code class="code">n = 1 production corpus</code> is what remains, and cannot currently be closed by anybody, using any public data.</strong> The reason a study like this one is rare is that the raw material does not exist publicly.</p>
+      </div>
+
+      <p class="wide-p"><strong>What would close it is small.</strong> An export of production agent sessions from a second operator or organisation, carrying, per tool call: a start and end timestamp, the tool name, a success/failure flag, and the issuing model call's input-token count. <strong>Four fields.</strong> This study's own export format is one such schema and is already content-stripped for privacy. Nothing in the public landscape provides it today.</p>
+    </section>
+
+    <hr class="sep">
+
+    <section id="worth" aria-labelledby="worth-h">
+      <h2 id="worth-h">What this study is worth</h2>
+
+      <h3>The three findings I'd stand behind, ordered by how well they survived somebody else's data</h3>
+      <ol class="plain" style="padding-left:22px;">
+        <li><strong>No context-pressure effect &mdash; the strongest result here.</strong> Across 25,199 joined calls spanning 0&ndash;300k+ tokens, failures do not rise with context, and the weak trend that exists points the other way and dies under stratification. This contradicts a widely-repeated claim. <strong>Replicated externally on 47,545 calls from 13 models in another harness with no operator present, at z = &minus;10.80 against &minus;2.33 here.</strong> It carries no caveat about operator, harness or model family any more. Its strength is the replication; its own denominator is a biased 30% subset.</li>
+        <li><strong>Frontier models barely loop, and handle errors excellently</strong> &mdash; a claim about <em>models</em>, not about <em>agents</em>. 1.15&ndash;2.08% of runs contain a stuck repeat; blind identical retry follows 1.76% of errors; adaptive response follows 96.9%.
+          <p style="margin:8px 0 0;"><strong>Scope corrected by the replication, and this is the correction that matters.</strong> Stated as a claim about agents it is false: across 3,895 headless runs by 13 models, blind retry is 16.12% (z = 20.6, p = 6.5e&minus;94) and stuck runs 11.93&ndash;25.01%. But blind retry spans 0.7% to 31.9% across models inside that one harness, and the frontier Claude runs land at 1.8%, 1.2% and 0.7% with stuck runs at 0.3&ndash;3.3% &mdash; indistinguishable from the figures here, with no human present. <strong>The low loop rate was measuring the model, not the operator.</strong> Ground truth makes the advice conditional rather than wrong: a stuck repeat cuts SWE-bench resolution from 38.6% to 14.4% (p = 2.9e&minus;24), so loop detection is not worth building for a frontier-model workload and <em>is</em> worth building for a mixed-model one.</p>
+        </li>
+        <li><strong>Elapsed time predicts tool failure, strongly and cheaply.</strong> 10.21% vs 3.07% error rate above and below 60 seconds (n = 3,153 / 81,913, p &asymp; 1e&minus;106), sharpening to 27.8% past ten minutes. Actionable without any model in the loop. <strong>Neither confirmed nor refuted externally, and claimed as neither</strong> &mdash; the benchmark harness caps command duration, so its tail is 0.22% of calls against 3.71% here, and the effect dies under a shell-only sensitivity check (1.05&times;, p = 0.58). Still scoped to this corpus.</li>
+      </ol>
+
+      <h3>What the data could not answer</h3>
+      <p class="wide-p">Premature confidence (content stripped, no ground truth); whether an agent proceeded on a failed result <em>in substance</em> rather than in structure; anything about compaction (38 events); whether a <code class="code">completed</code> run was actually <em>correct</em> at any point in this document.</p>
+
+      <h3>Where this is weakest, in the order a skeptic will find it</h3>
+      <ul class="plain">
+        <li><strong><s>n = 1 operator.</s> Tested externally and answered.</strong> The suspicion was that the low loop rate measured this operator rather than the agents &mdash; his prompting, or his invisible early intervention on sessions going wrong. It does not: the same models reproduce it in a headless harness on a different workload with no human in the loop at all.</li>
+        <li><strong><code class="code">n = 1 production corpus</code>, and that gap is itself a finding.</strong> Every public dataset is short, step-capped benchmark output; there is no public corpus of real production agent sessions at all. Nothing external speaks to open-ended, multi-day, human-directed sessions. <a href="#gap">Closing that needs a second operator's telemetry, not more benchmarks.</a></li>
+        <li><strong>Every number depends on a loading layer that can fail silently</strong>, and one such failure was caught during the replication &mdash; <a href="#nearmiss">2,398 of 3,895 runs silently dropped</a>, with no error raised and a plausible set of headline numbers produced from the remainder.</li>
+        <li><strong>Shape-level repeat detection</strong> carries a 2.8x spread between its bounds. That spread is the honest width of the uncertainty, and it is wide. The replication calibrates it for the first time against real arguments: truth sat <strong>74% of the way from the lower bound to the upper</strong>, so <strong>the upper bound is the better working estimate</strong>, not the midpoint.</li>
+        <li><strong>The 6.27% unresolved-error figure</strong> is a proxy with defensible objections in both directions.</li>
+        <li><strong><code class="code">completed</code> != correct</strong>, everywhere, with no way to close the gap from this data.</li>
+        <li><strong>Multiple comparisons</strong> are uncorrected throughout; the two results at p &asymp; 0.02 should be read as suggestive, not established.</li>
+      </ul>
+    </section>
+
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>Generated from <code>docs/results/study.json</code>. Every figure on this page <strong>about the original corpus</strong> is reproduced by the first command below; none of it is transcribed by hand.</p>
+    <div class="repro"><code>tracon study report --trace &lt;export&gt; --json docs/results/study.json
+tracon study report --check docs/results/study.json</code></div>
+    <p style="margin-top:18px;">Every figure on this page <strong>about the public replication corpus</strong> &mdash; the 94,059-call OpenHands SWE-bench corpus, the 13-model table, the ground-truth resolution rates and the bracket calibration &mdash; is <strong>transcribed verbatim from <code>docs/study-replication.md</code></strong> and is not re-derived on this page. That document is produced by the unmodified analyses in <code>src/tracon/study/analyses/</code> over a new loading layer:</p>
+    <div class="repro"><code>tracon study adapt --adapter openhands --out &lt;export&gt; &lt;output.jsonl files&gt;
+tracon study report --trace &lt;export&gt; --json &lt;result.json&gt;
+python scripts/study_replicate.py --public &lt;result.json&gt; ...</code></div>
+    <p style="margin-top:18px;">Corrections on this page are dated and the superseded claim is stated, never deleted. Last correction: 3 August 2026 &mdash; looping scope, and the Q4 join count.</p>
+  </div>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- theme toggle ---------- */
+  var root = document.documentElement;
+  var btn = document.getElementById('themeToggle');
+  var label = document.getElementById('themeLabel');
+  function systemPrefersDark(){
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  }
+  function applyLabel(){
+    var explicit = root.getAttribute('data-theme');
+    if(explicit === 'dark') label.textContent = 'dark';
+    else if(explicit === 'light') label.textContent = 'light';
+    else label.textContent = 'auto';
+  }
+  applyLabel();
+  btn.addEventListener('click', function(){
+    var current = root.getAttribute('data-theme');
+    var effectiveDark = current ? current === 'dark' : systemPrefersDark();
+    if(!current){
+      root.setAttribute('data-theme', effectiveDark ? 'light' : 'dark');
+    } else if(current === 'dark'){
+      root.setAttribute('data-theme', 'light');
+    } else {
+      root.setAttribute('data-theme', 'dark');
+    }
+    applyLabel();
+    setTimeout(renderAll, 0); // repaint charts against new CSS vars
+  });
+
+  /* ---------- svg helpers ---------- */
+  var SVGNS = 'http://www.w3.org/2000/svg';
+  function el(tag, attrs){
+    var e = document.createElementNS(SVGNS, tag);
+    for(var k in attrs){ e.setAttribute(k, attrs[k]); }
+    return e;
+  }
+  function cssVar(name){
+    return getComputedStyle(document.body).getPropertyValue(name).trim();
+  }
+  function fmtPct(v, d){ return v.toFixed(d===undefined?2:d) + '%'; }
+
+  function showTip(ttEl, x, y, html, containerRect){
+    ttEl.innerHTML = html;
+    ttEl.style.left = x + 'px';
+    ttEl.style.top = y + 'px';
+    ttEl.classList.add('show');
+  }
+  function hideTip(ttEl){ ttEl.classList.remove('show'); }
+
+  /* ---------- Chart 1: escalation ladder (bar) ---------- */
+  var ladderData = [
+    {label:'< 60s', pct:3.07, n:81913, err:2514},
+    {label:'≥ 60s', pct:10.21, n:3153, err:322},
+    {label:'≥ 10min', pct:27.8, n:90, err:25},
+    {label:'≥ 30min', pct:50.0, n:8, err:4, tinyN:true}
+  ];
+  function renderLadder(){
+    var svg = document.getElementById('chart-ladder');
+    if(!svg) return;
+    svg.innerHTML = '';
+    var W = 620, H = 260;
+    var padL = 44, padR = 20, padT = 16, padB = 40;
+    var plotW = W - padL - padR, plotH = H - padT - padB;
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+    svg.setAttribute('width', '100%');
+    svg.setAttribute('height', H);
+    svg.style.minWidth = '480px';
+
+    var maxV = 55;
+    var ink = cssVar('--ink'), inkMuted = cssVar('--ink-muted'), hair = cssVar('--hair');
+    var critical = cssVar('--critical'), surface2 = cssVar('--surface-2');
+
+    // gridlines
+    [0,10,20,30,40,50].forEach(function(g){
+      var y = padT + plotH - (g/maxV)*plotH;
+      var line = el('line', {x1:padL, x2:W-padR, y1:y, y2:y, class:'svg-hair'});
+      line.setAttribute('stroke-width','1');
+      svg.appendChild(line);
+      var t = el('text', {x: padL-8, y: y+4, 'text-anchor':'end', 'font-size':'11'});
+      t.setAttribute('class','svg-axis-label');
+      t.textContent = g + '%';
+      svg.appendChild(t);
+    });
+
+    var n = ladderData.length;
+    var gap = 22;
+    var barW = (plotW - gap*(n-1)) / n;
+    var tt = document.getElementById('tt-ladder');
+    var wrap = svg.closest('.chart-wrap');
+
+    ladderData.forEach(function(d, i){
+      var x = padL + i*(barW+gap);
+      var barH = (d.pct/maxV)*plotH;
+      var y = padT + plotH - barH;
+      var rect = el('rect', {
+        x: x, y: y, width: barW, height: Math.max(barH,2),
+        rx: 4, fill: d.tinyN ? 'none' : critical,
+        opacity: d.tinyN ? 1 : 0.88
+      });
+      if(d.tinyN){
+        rect.setAttribute('stroke', critical);
+        rect.setAttribute('stroke-width','2');
+        rect.setAttribute('stroke-dasharray','4,3');
+      }
+      rect.style.cursor = 'pointer';
+      svg.appendChild(rect);
+
+      // value label
+      var vt = el('text', {x: x+barW/2, y: y-8, 'text-anchor':'middle', 'font-size':'13', 'font-weight':'700'});
+      vt.setAttribute('fill', ink);
+      vt.textContent = (d.pct % 1 === 0 ? d.pct.toFixed(1) : d.pct) + '%';
+      svg.appendChild(vt);
+
+      // n label inside/above bar
+      var nt = el('text', {x: x+barW/2, y: padT+plotH+16, 'text-anchor':'middle', 'font-size':'10.5'});
+      nt.setAttribute('class','svg-axis-label');
+      nt.textContent = 'n=' + d.n.toLocaleString();
+      svg.appendChild(nt);
+
+      // category label
+      var ct = el('text', {x: x+barW/2, y: padT+plotH+30, 'text-anchor':'middle', 'font-size':'12', 'font-weight':'600'});
+      ct.setAttribute('fill', ink);
+      ct.textContent = d.label;
+      svg.appendChild(ct);
+
+      var hit = el('rect', {x:x, y:padT, width:barW, height:plotH, fill:'transparent'});
+      hit.style.cursor='pointer';
+      hit.addEventListener('mousemove', function(ev){
+        var r = wrap.getBoundingClientRect();
+        showTip(tt, ev.clientX - r.left, ev.clientY - r.top,
+          '<strong>' + d.label + '</strong><br>' + fmtPct(d.pct,2) + ' error rate<br>' + d.err.toLocaleString() + ' / ' + d.n.toLocaleString() + ' calls' + (d.tinyN ? '<br><em>n too small to lean on</em>' : ''));
+      });
+      hit.addEventListener('mouseleave', function(){ hideTip(tt); });
+      svg.appendChild(hit);
+    });
+  }
+
+  /* ---------- Chart 2: stacked composition ---------- */
+  var stackRows = [
+    {label:'≥10s', n:7507, heavy:85.6, err:8.3, human:3.2, agent:2.9},
+    {label:'≥30s', n:4360, heavy:82.4, err:9.5, human:4.3, agent:3.8},
+    {label:'≥60s', n:3153, heavy:81.4, err:10.2, human:4.3, agent:4.1},
+    {label:'≥5min', n:396, heavy:71.0, err:16.7, human:5.8, agent:6.6},
+    {label:'≥10min', n:90, heavy:46.7, err:27.8, human:13.3, agent:12.2},
+    {label:'≥30min', n:8, heavy:37.5, err:50.0, human:0, agent:12.5, tinyN:true}
+  ];
+  var stackKeys = [
+    {key:'heavy', label:'Heavy work', varName:'--good'},
+    {key:'err', label:'Errored', varName:'--critical'},
+    {key:'human', label:'Waiting on human', varName:'--warning'},
+    {key:'agent', label:'Waiting on agent', varName:'--serious'}
+  ];
+  function renderStack(){
+    var svg = document.getElementById('chart-stack');
+    if(!svg) return;
+    svg.innerHTML = '';
+    var rowH = 34, rowGap = 14;
+    var padL = 90, padR = 20, padT = 10, padB = 10;
+    var barMaxW = 480;
+    var W = padL + barMaxW + padR + 60;
+    var H = padT + stackRows.length*(rowH+rowGap) - rowGap + padB;
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+    svg.setAttribute('width', '100%');
+    svg.setAttribute('height', H);
+    svg.style.minWidth = '520px';
+
+    var ink = cssVar('--ink'), inkMuted = cssVar('--ink-muted'), surfaceBg = cssVar('--surface');
+    var colors = {};
+    stackKeys.forEach(function(k){ colors[k.key] = cssVar(k.varName); });
+
+    var tt = document.getElementById('tt-stack');
+    var wrap = svg.closest('.chart-wrap');
+
+    stackRows.forEach(function(row, ri){
+      var y = padT + ri*(rowH+rowGap);
+      var lt = el('text', {x: padL-10, y: y+rowH/2+4, 'text-anchor':'end', 'font-size':'12', 'font-weight':'600'});
+      lt.setAttribute('fill', ink);
+      lt.textContent = row.label;
+      svg.appendChild(lt);
+
+      var nt = el('text', {x: padL-10, y: y+rowH/2+18, 'text-anchor':'end', 'font-size':'10'});
+      nt.setAttribute('class','svg-axis-label');
+      nt.textContent = 'n=' + row.n.toLocaleString();
+      svg.appendChild(nt);
+
+      var xCursor = padL;
+      stackKeys.forEach(function(k){
+        var v = row[k.key];
+        var segW = (v/100)*barMaxW;
+        if(segW <= 0) return;
+        var rect = el('rect', {
+          x: xCursor + 1, y: y, width: Math.max(segW-2,0), height: rowH,
+          rx: 3, fill: colors[k.key]
+        });
+        rect.style.cursor = 'pointer';
+        svg.appendChild(rect);
+        (function(k, v, xCursor, segW, row){
+          rect.addEventListener('mousemove', function(ev){
+            var r = wrap.getBoundingClientRect();
+            showTip(tt, ev.clientX - r.left, ev.clientY - r.top,
+              '<strong>' + row.label + '</strong><br>' + k.label + ': ' + v + '%<br>n=' + row.n.toLocaleString());
+          });
+          rect.addEventListener('mouseleave', function(){ hideTip(tt); });
+        })(k, v, xCursor, segW, row);
+        // direct label for segments wide enough
+        if(segW > 30){
+          var st = el('text', {x: xCursor + segW/2, y: y+rowH/2+4, 'text-anchor':'middle', 'font-size':'10.5', 'font-weight':'700'});
+          st.setAttribute('fill', k.key === 'human' ? cssVar('--ink') : '#ffffff');
+          st.setAttribute('opacity', k.key === 'human' ? '0.9' : '0.95');
+          st.textContent = v + '%';
+          svg.appendChild(st);
+        }
+        xCursor += segW;
+      });
+      // outline the whole bar
+      var outline = el('rect', {x:padL, y:y, width:barMaxW, height:rowH, rx:3, fill:'none', stroke:cssVar('--border-2')});
+      svg.appendChild(outline);
+      if(row.tinyN){
+        var warn = el('text', {x: padL+barMaxW+10, y: y+rowH/2+4, 'font-size':'10.5', 'font-style':'italic'});
+        warn.setAttribute('class','svg-axis-label');
+        warn.textContent = 'small n';
+        svg.appendChild(warn);
+      }
+    });
+
+    var legend = document.getElementById('legend-stack');
+    legend.innerHTML = '';
+    stackKeys.forEach(function(k){
+      var item = document.createElement('div');
+      item.className = 'item';
+      var sw = document.createElement('span');
+      sw.className = 'swatch';
+      sw.style.background = colors[k.key];
+      item.appendChild(sw);
+      var txt = document.createElement('span');
+      txt.textContent = k.label;
+      item.appendChild(txt);
+      legend.appendChild(item);
+    });
+  }
+
+  /* ---------- Chart 2b: blind retry by model (public corpus) ----------
+     All values transcribed from docs/study-replication.md section 5. */
+  var modelRows = [
+    {label:'claude-3-5-sonnet (v2.2)', pct:0.7,  calls:7531,  stuck:'0.0 – 2.7',  frontier:true},
+    {label:'claude-3-5-haiku (v2.1)',  pct:1.2,  calls:9334,  stuck:'0.3 – 1.0',  frontier:true},
+    {label:'claude-3-5-sonnet (v2.1)', pct:1.8,  calls:7997,  stuck:'0.3 – 3.3',  frontier:true},
+    {label:'claude-3-5-sonnet (06-20)', pct:6.3, calls:6612, stuck:'0.0 – 30.7'},
+    {label:'llama-3.2-90b',            pct:8.6,  calls:5307,  stuck:'5.7 – 26.9'},
+    {label:'llama-3.1-70b',            pct:9.9,  calls:5159,  stuck:'3.3 – 11.3'},
+    {label:'o1-mini',                  pct:10.8, calls:4504,  stuck:'2.0 – 14.2'},
+    {label:'deepseek-chat (v2.2)',     pct:12.6, calls:8459,  stuck:'27.7 – 30.7'},
+    {label:'gpt-4o',                   pct:13.5, calls:7109,  stuck:'11.7 – 36.3'},
+    {label:'gpt-4o-mini',              pct:13.7, calls:6654,  stuck:'13.0 – 27.0'},
+    {label:'qwen-2.5-72b',             pct:20.1, calls:5632,  stuck:'21.7 – 43.7'},
+    {label:'deepseek-v2.5',            pct:28.1, calls:5537,  stuck:'28.0 – 56.0'},
+    {label:'llama-3.3-70b',            pct:31.9, calls:14224, stuck:'41.1 – 41.1'}
+  ];
+  function renderModels(){
+    var svg = document.getElementById('chart-models');
+    if(!svg) return;
+    svg.innerHTML = '';
+    var rowH = 18, rowGap = 8;
+    var padL = 148, padR = 48, padT = 22, padB = 8;
+    var barMaxW = 220;
+    var W = padL + barMaxW + padR;
+    var H = padT + modelRows.length*(rowH+rowGap) - rowGap + padB;
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+    svg.setAttribute('width', '100%');
+    svg.setAttribute('height', H);
+    svg.style.minWidth = '408px';
+
+    var maxV = 35;
+    var ink = cssVar('--ink'), accent = cssVar('--accent'), serious = cssVar('--serious');
+    var hairStrong = cssVar('--hair-strong');
+    var tt = document.getElementById('tt-models');
+    var wrap = svg.closest('.chart-wrap');
+
+    var plotBottom = padT + modelRows.length*(rowH+rowGap) - rowGap;
+
+    // reference line: this study's 1.76%
+    var refX = padL + (1.76/maxV)*barMaxW;
+    var refLine = el('line', {x1:refX, x2:refX, y1:padT-8, y2:plotBottom, stroke:hairStrong, 'stroke-width':'1.5', 'stroke-dasharray':'3,3'});
+    svg.appendChild(refLine);
+    var refLbl = el('text', {x:refX+5, y:padT-12, 'font-size':'10.5', 'font-style':'italic'});
+    refLbl.setAttribute('class','svg-axis-label');
+    refLbl.textContent = 'this study: 1.76%';
+    svg.appendChild(refLbl);
+
+    modelRows.forEach(function(row, ri){
+      var y = padT + ri*(rowH+rowGap);
+      var lt = el('text', {x: padL-9, y: y+rowH/2+4, 'text-anchor':'end', 'font-size':'10'});
+      lt.setAttribute('fill', ink);
+      if(row.frontier) lt.setAttribute('font-weight','700');
+      lt.textContent = row.label;
+      svg.appendChild(lt);
+
+      var w = Math.max((row.pct/maxV)*barMaxW, 2);
+      var rect = el('rect', {
+        x: padL, y: y, width: w, height: rowH, rx: 3,
+        fill: row.frontier ? accent : serious
+      });
+      rect.style.cursor = 'pointer';
+      svg.appendChild(rect);
+
+      var vt = el('text', {x: padL + w + 7, y: y+rowH/2+4, 'font-size':'11', 'font-weight':'700'});
+      vt.setAttribute('fill', ink);
+      vt.textContent = row.pct.toFixed(1) + '%';
+      svg.appendChild(vt);
+
+      var hit = el('rect', {x:padL, y:y, width:barMaxW, height:rowH, fill:'transparent'});
+      hit.style.cursor = 'pointer';
+      hit.addEventListener('mousemove', function(ev){
+        var r = wrap.getBoundingClientRect();
+        showTip(tt, ev.clientX - r.left, ev.clientY - r.top,
+          '<strong>' + row.label + '</strong><br>' + row.pct.toFixed(1) + '% blind retry<br>stuck runs ' + row.stuck + '%<br>' + row.calls.toLocaleString() + ' tool calls');
+      });
+      hit.addEventListener('mouseleave', function(){ hideTip(tt); });
+      svg.appendChild(hit);
+    });
+
+    var legend = document.getElementById('legend-models');
+    if(legend){
+      legend.innerHTML = '';
+      [{label:'Frontier Claude runs', color: accent},
+       {label:'Other models in the same harness', color: serious}].forEach(function(k){
+        var item = document.createElement('div');
+        item.className = 'item';
+        var sw = document.createElement('span');
+        sw.className = 'swatch';
+        sw.style.background = k.color;
+        item.appendChild(sw);
+        var txt = document.createElement('span');
+        txt.textContent = k.label;
+        item.appendChild(txt);
+        legend.appendChild(item);
+      });
+    }
+  }
+
+  /* ---------- Chart 3: context bins (line) ---------- */
+  var contextBins = [
+    {label:'0–25k', pct:1.551, n:709, err:11},
+    {label:'25–50k', pct:2.503, n:4955, err:124},
+    {label:'50–75k', pct:3.631, n:4379, err:159},
+    {label:'75–100k', pct:3.096, n:2939, err:91},
+    {label:'100–125k', pct:2.931, n:2218, err:65},
+    {label:'125–150k', pct:2.668, n:1724, err:46},
+    {label:'150–175k', pct:3.178, n:1479, err:47},
+    {label:'175–200k', pct:3.397, n:1001, err:34},
+    {label:'200–225k', pct:1.842, n:923, err:17},
+    {label:'225–250k', pct:2.243, n:758, err:17},
+    {label:'250–275k', pct:3.195, n:626, err:20},
+    {label:'275–300k', pct:2.788, n:538, err:15},
+    {label:'300k+', pct:1.898, n:2950, err:56}
+  ];
+  function renderContext(){
+    var svg = document.getElementById('chart-context');
+    if(!svg) return;
+    svg.innerHTML = '';
+    var W = 720, H = 260;
+    var padL = 44, padR = 20, padT = 16, padB = 48;
+    var plotW = W - padL - padR, plotH = H - padT - padB;
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+    svg.setAttribute('width', '100%');
+    svg.setAttribute('height', H);
+    svg.style.minWidth = '600px';
+
+    var maxV = 5;
+    var accent = cssVar('--accent'), ink = cssVar('--ink'), baseline = cssVar('--baseline') || cssVar('--hair-strong');
+    var overallPct = 3.341;
+
+    [0,1,2,3,4,5].forEach(function(g){
+      var y = padT + plotH - (g/maxV)*plotH;
+      var line = el('line', {x1:padL, x2:W-padR, y1:y, y2:y, class:'svg-hair'});
+      line.setAttribute('stroke-width','1');
+      svg.appendChild(line);
+      var t = el('text', {x: padL-8, y: y+4, 'text-anchor':'end', 'font-size':'11'});
+      t.setAttribute('class','svg-axis-label');
+      t.textContent = g + '%';
+      svg.appendChild(t);
+    });
+
+    // overall baseline reference line
+    var by = padT + plotH - (overallPct/maxV)*plotH;
+    var baseLine = el('line', {x1:padL, x2:W-padR, y1:by, y2:by, stroke:cssVar('--hair-strong'), 'stroke-width':'1.5', 'stroke-dasharray':'3,3'});
+    svg.appendChild(baseLine);
+    var baseLabel = el('text', {x: W-padR, y: by-6, 'text-anchor':'end', 'font-size':'10.5', 'font-style':'italic'});
+    baseLabel.setAttribute('class','svg-axis-label');
+    baseLabel.textContent = 'overall 3.34%';
+    svg.appendChild(baseLabel);
+
+    var n = contextBins.length;
+    var stepX = plotW/(n-1);
+    var pts = contextBins.map(function(d, i){
+      return {x: padL + i*stepX, y: padT + plotH - (d.pct/maxV)*plotH, d: d};
+    });
+
+    var pathD = pts.map(function(p, i){ return (i===0?'M':'L') + p.x.toFixed(1) + ',' + p.y.toFixed(1); }).join(' ');
+    var path = el('path', {d: pathD, fill:'none', stroke: accent, 'stroke-width':'2.25', 'stroke-linejoin':'round', 'stroke-linecap':'round'});
+    svg.appendChild(path);
+
+    var tt = document.getElementById('tt-context');
+    var wrap = svg.closest('.chart-wrap');
+
+    pts.forEach(function(p, i){
+      var dot = el('circle', {cx:p.x, cy:p.y, r:4, fill: accent, stroke: cssVar('--surface'), 'stroke-width':'1.5'});
+      dot.style.cursor='pointer';
+      svg.appendChild(dot);
+
+      var hit = el('circle', {cx:p.x, cy:p.y, r:12, fill:'transparent'});
+      hit.style.cursor='pointer';
+      hit.addEventListener('mousemove', function(ev){
+        var r = wrap.getBoundingClientRect();
+        showTip(tt, ev.clientX - r.left, ev.clientY - r.top,
+          '<strong>' + p.d.label + ' tokens</strong><br>' + fmtPct(p.d.pct,3) + ' error rate<br>' + p.d.err + ' / ' + p.d.n.toLocaleString() + ' calls');
+      });
+      hit.addEventListener('mouseleave', function(){ hideTip(tt); });
+      svg.appendChild(hit);
+
+      // rotated x labels
+      var lbl = el('text', {x:p.x, y: padT+plotH+16, 'text-anchor':'end', 'font-size':'10', transform: 'rotate(-40 ' + p.x + ',' + (padT+plotH+16) + ')'});
+      lbl.setAttribute('class','svg-axis-label');
+      lbl.textContent = p.d.label;
+      svg.appendChild(lbl);
+    });
+  }
+
+  function renderAll(){
+    renderLadder();
+    renderModels();
+    renderStack();
+    renderContext();
+  }
+  renderAll();
+  window.addEventListener('resize', function(){
+    clearTimeout(window.__rt);
+    window.__rt = setTimeout(renderAll, 120);
+  });
+})();
+</script>
+
+</body>
+</html>
