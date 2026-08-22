@@ -9,7 +9,8 @@ from agent_obs.corpus import Snapshot
 
 # key, display name, unit, higher_is_worse
 _WATCHED: tuple[tuple[str, str, str, bool], ...] = (
-    ("unaccounted_rate", "Unaccounted rate", "pct", True),
+    ("unaccounted_rate", "Unaccounted rate (raw)", "pct", True),
+    ("unaccounted_resolvable_rate", "Unaccounted rate (resolvable only)", "pct", True),
     ("never_returned_rate", "Never-returned rate", "pct", True),
     ("tool_error_rate", "Tool error rate", "pct", True),
     ("longtail_share_60s", "Long-tail share (>=60s)", "pct", True),
@@ -55,8 +56,8 @@ def build_timeline(snapshots: list[Snapshot]) -> dict:
             "values": values,
         }
         if len(values) >= _MIN_SNAPSHOTS_FOR_DELTA:
-            entry["delta_first_to_last"] = values[-1] - values[0]
-            entry["delta_prev_to_last"] = values[-1] - values[-2]
+            entry["delta_first_to_last"] = _delta(values[0], values[-1])
+            entry["delta_prev_to_last"] = _delta(values[-2], values[-1])
         else:
             entry["delta_first_to_last"] = None
             entry["delta_prev_to_last"] = None
@@ -72,10 +73,17 @@ def build_timeline(snapshots: list[Snapshot]) -> dict:
         "metrics": metrics,
         "single_snapshot": len(ordered) < _MIN_SNAPSHOTS_FOR_DELTA,
         "last_by_agent_type": by_agent_type,
+        "last_unresolvable": last.unresolvable if last is not None else 0,
     }
 
 
-def _fmt(value: float, unit: str) -> str:
+def _delta(a: float | None, b: float | None) -> float | None:
+    return b - a if a is not None and b is not None else None
+
+
+def _fmt(value: float | None, unit: str) -> str:
+    if value is None:
+        return "n/a"
     if unit == "pct":
         return f"{100 * value:.2f}%"
     return f"{value:.0f}ms"
@@ -132,17 +140,38 @@ def _render_by_agent_type(by_type: dict[str, dict]) -> list[str]:
         return lines
 
     ranked = sorted(by_type.items(), key=lambda kv: kv[1]["unaccounted"], reverse=True)
-    lines.append("| Agent type | Runs | Unaccounted | Rate | Tool minutes |")
-    lines.append("|---|---|---|---|---|")
+    lines.append(
+        "| Agent type | Runs | Unaccounted | Unresolvable | Rate (resolvable) | Tool minutes |"
+    )
+    lines.append("|---|---|---|---|---|---|")
     for name, stats in ranked:
-        rate = stats["unaccounted"] / stats["runs"] if stats["runs"] else 0.0
+        resolvable = stats["resolvable_runs"]
+        resolvable_unaccounted = stats["unaccounted_resolvable"]
+        rate_str = (
+            f"{100 * resolvable_unaccounted / resolvable:.2f}%" if resolvable else "n/a"
+        )
         tool_min = stats["tool_ms"] / 60_000
         lines.append(
-            f"| {name} | {stats['runs']} | {stats['unaccounted']} | "
-            f"{100 * rate:.2f}% | {tool_min:.1f} |"
+            f"| {name} | {stats['runs']} | {stats['unaccounted']} | {stats['unresolvable']} | "
+            f"{rate_str} | {tool_min:.1f} |"
         )
     lines.append("")
     return lines
+
+
+def _render_unresolvable_caveat(unresolvable: int) -> list[str]:
+    if unresolvable <= 0:
+        return []
+    return [
+        (
+            "Some subagent runs' outcomes cannot be recovered from this export at all — the "
+            "data needed to resolve them was never captured, regardless of how those runs "
+            "actually ended. They are counted in the raw rate above and excluded from the "
+            "resolvable-only rate. Their presence is a property of how traces are captured, "
+            "not a fleet problem."
+        ),
+        "",
+    ]
 
 
 def render_timeline(timeline: dict) -> str:
@@ -156,6 +185,7 @@ def render_timeline(timeline: dict) -> str:
         )
 
     lines.extend(_render_table(labels, metrics))
+    lines.extend(_render_unresolvable_caveat(timeline.get("last_unresolvable", 0)))
     lines.extend(_what_moved(metrics))
     lines.extend(_render_by_agent_type(timeline["last_by_agent_type"]))
 

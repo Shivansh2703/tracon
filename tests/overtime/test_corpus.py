@@ -114,6 +114,114 @@ def test_malformed_lines_are_skipped(tmp_path: Path) -> None:
     assert snap.sessions == 1
 
 
+def test_unresolvable_workflow_run_stays_in_raw_unaccounted_but_not_resolvable(
+    tmp_path: Path,
+) -> None:
+    lines = [
+        {"ev": "session", "agent": "a1", "agent_type": "workflow-subagent", "workflow": "wf_x1"},
+        {"ev": "session", "agent": "a2", "agent_type": "workflow-subagent", "end_status": "failed"},
+    ]
+    snap = read_snapshot(_write_export(tmp_path, lines))
+    assert snap.agents == 2
+    assert snap.unaccounted == 1  # unchanged definition — a1 has no end_status
+    assert snap.unresolvable == 1
+    assert snap.resolvable_agents == 1
+    assert snap.unaccounted_resolvable == 0
+    assert snap.unaccounted_resolvable_rate == pytest.approx(0.0)
+
+    stats = snap.by_agent_type["workflow-subagent"]
+    assert stats.runs == 2
+    assert stats.unaccounted == 1
+    assert stats.unresolvable == 1
+    assert stats.resolvable_runs == 1
+    assert stats.unaccounted_resolvable == 0
+
+
+def test_completed_run_with_workflow_id_is_never_negative(tmp_path: Path) -> None:
+    # The reviewer's bounce repro: a run with a non-null workflow id (unresolvable) that ALSO
+    # has end_status "completed" (accounted). unaccounted_resolvable must be counted directly
+    # (never derived as unaccounted - unresolvable), so it can never go negative here.
+    lines = [
+        {
+            "ev": "session",
+            "agent": "a1",
+            "agent_type": "workflow-subagent",
+            "workflow": "wf_x1",
+            "end_status": "completed",
+        },
+        {
+            "ev": "session",
+            "agent": "a2",
+            "agent_type": "workflow-subagent",
+            "end_status": "completed",
+        },
+        {"ev": "session", "agent": "a3", "agent_type": "workflow-subagent", "end_status": "failed"},
+    ]
+    snap = read_snapshot(_write_export(tmp_path, lines))
+    assert snap.agents == 3
+    assert snap.unaccounted == 0
+    assert snap.unresolvable == 1
+    assert snap.resolvable_agents == 2
+    assert snap.unaccounted_resolvable == 0
+    assert snap.unaccounted_resolvable_rate == pytest.approx(0.0)
+
+    stats = snap.by_agent_type["workflow-subagent"]
+    assert stats.resolvable_runs == 2
+    assert stats.unaccounted_resolvable == 0
+
+
+def test_workflow_id_never_appears_in_to_dict(tmp_path: Path) -> None:
+    sentinel = "wf_super_secret_sentinel_12345"
+    lines = [
+        {"ev": "session", "agent": "a1", "agent_type": "workflow-subagent", "workflow": sentinel},
+    ]
+    snap = read_snapshot(_write_export(tmp_path, lines))
+    dumped = json.dumps(snap.to_dict())
+    assert sentinel not in dumped
+
+
+def test_from_dict_defaults_new_fields_from_older_json() -> None:
+    # JSON written before resolvable_agents/unaccounted_resolvable existed. from_dict must not
+    # KeyError, and should fall back to a sensible (clamped) value.
+    old_json = {
+        "label": "old",
+        "corpus_id": None,
+        "schema_version": 1,
+        "generated_at": None,
+        "sessions": 1,
+        "agents": 3,
+        "unaccounted": 1,
+        "unresolvable": 1,
+        "never_returned": 0,
+        "tool_calls": 0,
+        "tool_errors": 0,
+        "tool_ms_total": 0.0,
+        "model_ms_total": 0.0,
+        "duration_p50_ms": 0.0,
+        "duration_p95_ms": 0.0,
+        "duration_p99_ms": 0.0,
+        "slowest_call_ms": 0.0,
+        "longtail_share_60s": 0.0,
+        "tokens": {"in": 0, "out": 0, "cache_read": 0, "cache_create": 0},
+        "cache_read_share_p50": 0.0,
+        "by_agent_type": {
+            "wf": {
+                "runs": 3,
+                "unaccounted": 1,
+                "unresolvable": 1,
+                "tool_ms": 0.0,
+                "runtime_ms": 0.0,
+            }
+        },
+    }
+    snap = Snapshot.from_dict(old_json)
+    assert snap.resolvable_agents == 2  # agents(3) - unresolvable(1)
+    assert snap.unaccounted_resolvable == 0  # unaccounted(1) - unresolvable(1)
+    stats = snap.by_agent_type["wf"]
+    assert stats.resolvable_runs == 2
+    assert stats.unaccounted_resolvable == 0
+
+
 def test_snapshot_round_trips_through_json(tmp_path: Path) -> None:
     lines = [
         {"ev": "session", "agent": "a1", "agent_type": "haiku-low", "end_status": "completed"},

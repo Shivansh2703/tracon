@@ -8,8 +8,9 @@ from agent_obs.corpus import Snapshot
 from agent_obs.stats import two_proportion_test, wilson
 
 # metric key -> (numerator attr, denominator attr)
+# `unaccounted_rate` is deliberately NOT gated here — see the raw-rate note in render_check.
 _PROPORTION_METRICS = {
-    "unaccounted_rate": ("unaccounted", "agents"),
+    "unaccounted_resolvable_rate": ("unaccounted_resolvable", "resolvable_agents"),
     "never_returned_rate": ("never_returned", "tool_calls"),
     "tool_error_rate": ("tool_errors", "tool_calls"),
 }
@@ -22,7 +23,7 @@ _THRESHOLD_METRICS = {
 }
 
 _DISPLAY_NAMES = {
-    "unaccounted_rate": "Unaccounted rate",
+    "unaccounted_resolvable_rate": "Unaccounted rate (resolvable only)",
     "never_returned_rate": "Never-returned rate",
     "tool_error_rate": "Tool error rate",
 }
@@ -43,14 +44,55 @@ class Regression:
     evidence: dict
 
 
-def check(baseline: Snapshot, current: Snapshot, tolerance: float = 0.10) -> list[Regression]:
+class CheckResult(list):
+    """The regressions found, plus messages for any metric skipped as unsafe or undefined.
+
+    Behaves as a plain ``list[Regression]`` for every existing caller (truthiness, iteration) —
+    ``skipped`` is extra, not a replacement.
+    """
+
+    def __init__(self, regressions: list[Regression], skipped: list[str]) -> None:
+        super().__init__(regressions)
+        self.skipped = skipped
+
+
+def _valid_proportion(numerator: object, denominator: object) -> bool:
+    """A numerator/denominator pair sane enough to feed a proportion test.
+
+    Guards a trust boundary: baseline/current snapshots can arrive as hand-edited or malformed
+    JSON, and a two-proportion test on garbage (e.g. a negative numerator) can raise
+    ``ValueError: math domain error`` deep inside ``stats.py`` instead of failing cleanly.
+    """
+    return (
+        isinstance(numerator, int)
+        and not isinstance(numerator, bool)
+        and isinstance(denominator, int)
+        and not isinstance(denominator, bool)
+        and 0 <= numerator <= denominator
+    )
+
+
+def check(baseline: Snapshot, current: Snapshot, tolerance: float = 0.10) -> CheckResult:
     regressions: list[Regression] = []
+    skipped: list[str] = []
 
     for metric, (num_attr, den_attr) in _PROPORTION_METRICS.items():
         base_num, base_den = getattr(baseline, num_attr), getattr(baseline, den_attr)
         cur_num, cur_den = getattr(current, num_attr), getattr(current, den_attr)
-        base_rate = base_num / base_den if base_den else 0.0
-        cur_rate = cur_num / cur_den if cur_den else 0.0
+
+        if not (_valid_proportion(base_num, base_den) and _valid_proportion(cur_num, cur_den)):
+            skipped.append(
+                f"Skipped {_DISPLAY_NAMES[metric]}: malformed numerator/denominator "
+                "(not integers with 0 <= numerator <= denominator)."
+            )
+            continue
+        if base_den == 0 or cur_den == 0:
+            # Rate is undefined (None) on at least one side — nothing to compare, not zero.
+            skipped.append(f"Skipped {_DISPLAY_NAMES[metric]}: no resolvable runs to compare.")
+            continue
+
+        base_rate = base_num / base_den
+        cur_rate = cur_num / cur_den
         if cur_rate <= base_rate:
             continue
         test = two_proportion_test(cur_num, cur_den, base_num, base_den)
@@ -95,7 +137,7 @@ def check(baseline: Snapshot, current: Snapshot, tolerance: float = 0.10) -> lis
             )
         )
 
-    return regressions
+    return CheckResult(regressions, skipped)
 
 
 def render_check(regressions: list[Regression], baseline: Snapshot, current: Snapshot) -> str:
@@ -125,6 +167,17 @@ def render_check(regressions: list[Regression], baseline: Snapshot, current: Sna
                 )
             lines.append("")
 
+    skipped = getattr(regressions, "skipped", [])
+    lines.extend(skipped)
+    if skipped:
+        lines.append("")
+
+    lines.append(
+        f"Unaccounted rate (raw): baseline {baseline.unaccounted_rate:.2%}, "
+        f"current {current.unaccounted_rate:.2%} — shown for comparability with tracon "
+        "doctor's own figure. Not gated: it mixes in runs whose outcome this export never "
+        "had a way to capture, alongside runs that may be genuinely unaccounted."
+    )
     lines.append(
         "Not gated (reported only — direction is not obviously bad): "
         + ", ".join(_UNGATED_METRICS)

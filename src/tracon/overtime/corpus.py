@@ -39,6 +39,13 @@ def _quantile(values: list[float], p: float) -> float:
 class AgentTypeStats:
     runs: int = 0
     unaccounted: int = 0
+    unresolvable: int = 0
+    # Counted directly while streaming (see _Accumulator.add_session) rather than derived by
+    # subtraction from `runs`/`unaccounted` — a subtraction is only valid if every unresolvable
+    # run is also unaccounted, and nothing enforced that. Counting directly makes the impossible
+    # (negative) value unconstructable instead of just clamped away.
+    resolvable_runs: int = 0
+    unaccounted_resolvable: int = 0
     tool_ms: float = 0.0
     runtime_ms: float = 0.0
 
@@ -46,19 +53,37 @@ class AgentTypeStats:
     def unaccounted_rate(self) -> float:
         return self.unaccounted / self.runs if self.runs else 0.0
 
+    @property
+    def unaccounted_resolvable_rate(self) -> float | None:
+        """None (render as n/a) when every run in this row is unresolvable."""
+        return (
+            self.unaccounted_resolvable / self.resolvable_runs if self.resolvable_runs else None
+        )
+
     def to_dict(self) -> dict:
         return {
             "runs": self.runs,
             "unaccounted": self.unaccounted,
+            "unresolvable": self.unresolvable,
+            "resolvable_runs": self.resolvable_runs,
+            "unaccounted_resolvable": self.unaccounted_resolvable,
             "tool_ms": self.tool_ms,
             "runtime_ms": self.runtime_ms,
         }
 
     @classmethod
     def from_dict(cls, d: dict) -> AgentTypeStats:
+        unresolvable = d.get("unresolvable", 0)
         return cls(
             runs=d["runs"],
             unaccounted=d["unaccounted"],
+            unresolvable=unresolvable,
+            # Older JSON predates these counters — fall back to the (pre-fix) subtraction,
+            # clamped so a stale-but-buggy file can't resurrect a negative value on load.
+            resolvable_runs=d.get("resolvable_runs", max(0, d["runs"] - unresolvable)),
+            unaccounted_resolvable=d.get(
+                "unaccounted_resolvable", max(0, d["unaccounted"] - unresolvable)
+            ),
             tool_ms=d["tool_ms"],
             runtime_ms=d["runtime_ms"],
         )
@@ -85,11 +110,26 @@ class Snapshot:
     longtail_share_60s: float
     tokens: dict[str, int]
     cache_read_share_p50: float
+    unresolvable: int = 0
+    # Counted directly while streaming — see AgentTypeStats above for why this isn't
+    # `agents - unresolvable` / `unaccounted - unresolvable`.
+    resolvable_agents: int = 0
+    unaccounted_resolvable: int = 0
     by_agent_type: dict[str, AgentTypeStats] = field(default_factory=dict)
 
     @property
     def unaccounted_rate(self) -> float:
         return self.unaccounted / self.agents if self.agents else 0.0
+
+    @property
+    def unaccounted_resolvable_rate(self) -> float | None:
+        """None (render as n/a) when there are no resolvable agents to rate — same contract as
+        AgentTypeStats.unaccounted_resolvable_rate."""
+        return (
+            self.unaccounted_resolvable / self.resolvable_agents
+            if self.resolvable_agents
+            else None
+        )
 
     @property
     def never_returned_rate(self) -> float:
@@ -125,11 +165,15 @@ class Snapshot:
             "longtail_share_60s": self.longtail_share_60s,
             "tokens": self.tokens,
             "cache_read_share_p50": self.cache_read_share_p50,
+            "unresolvable": self.unresolvable,
+            "resolvable_agents": self.resolvable_agents,
+            "unaccounted_resolvable": self.unaccounted_resolvable,
             "by_agent_type": {k: v.to_dict() for k, v in self.by_agent_type.items()},
         }
 
     @classmethod
     def from_dict(cls, d: dict) -> Snapshot:
+        unresolvable = d.get("unresolvable", 0)
         return cls(
             label=d["label"],
             corpus_id=d["corpus_id"],
@@ -150,6 +194,13 @@ class Snapshot:
             longtail_share_60s=d["longtail_share_60s"],
             tokens=d["tokens"],
             cache_read_share_p50=d["cache_read_share_p50"],
+            unresolvable=unresolvable,
+            # Older JSON predates these counters — fall back to the (pre-fix) subtraction,
+            # clamped so a stale-but-buggy file can't resurrect a negative value on load.
+            resolvable_agents=d.get("resolvable_agents", max(0, d["agents"] - unresolvable)),
+            unaccounted_resolvable=d.get(
+                "unaccounted_resolvable", max(0, d["unaccounted"] - unresolvable)
+            ),
             by_agent_type={k: AgentTypeStats.from_dict(v) for k, v in d["by_agent_type"].items()},
         )
 
@@ -161,6 +212,9 @@ class _Accumulator:
     sessions: int = 0
     agents: int = 0
     unaccounted: int = 0
+    unresolvable: int = 0
+    resolvable_agents: int = 0
+    unaccounted_resolvable: int = 0
     tool_calls: int = 0
     tool_errors: int = 0
     never_returned: int = 0
@@ -185,12 +239,30 @@ class _Accumulator:
         is_unaccounted = ev.get("end_status") not in _ACCOUNTED
         if is_unaccounted:
             self.unaccounted += 1
+        # A non-null `workflow` id means this run's outcome can never be resolved from this
+        # export by construction — it stays counted in `unaccounted` above (unchanged
+        # definition, matches tracon doctor) but is tracked separately here so a resolvable-only
+        # rate can be reported alongside it. The id value itself is never stored — null/non-null
+        # is the only thing tested.
+        is_unresolvable = ev.get("workflow") is not None
+        if is_unresolvable:
+            self.unresolvable += 1
+        else:
+            self.resolvable_agents += 1
+            if is_unaccounted:
+                self.unaccounted_resolvable += 1
         agent_type = ev.get("agent_type") or _UNTYPED
         self.agent_id_to_type[agent_id] = agent_type
         stats = self.by_type.setdefault(agent_type, AgentTypeStats())
         stats.runs += 1
         if is_unaccounted:
             stats.unaccounted += 1
+        if is_unresolvable:
+            stats.unresolvable += 1
+        else:
+            stats.resolvable_runs += 1
+            if is_unaccounted:
+                stats.unaccounted_resolvable += 1
         t_start, t_end = ev.get("t_start"), ev.get("t_end")
         if _is_number(t_start) and _is_number(t_end):
             stats.runtime_ms += t_end - t_start
@@ -305,6 +377,9 @@ def read_snapshot(path: str | Path) -> Snapshot:
         sessions=acc.sessions,
         agents=acc.agents,
         unaccounted=acc.unaccounted,
+        unresolvable=acc.unresolvable,
+        resolvable_agents=acc.resolvable_agents,
+        unaccounted_resolvable=acc.unaccounted_resolvable,
         never_returned=acc.never_returned,
         tool_calls=acc.tool_calls,
         tool_errors=acc.tool_errors,
