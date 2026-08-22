@@ -2,13 +2,43 @@
 
 > A TRACON doesn't fly the planes — it decides who goes when.
 
-**Dependency- and session-aware scheduling for agentic LLM workloads.**
+**Dependency- and session-aware scheduling for agentic LLM workloads — and the
+measurement it is built on.**
 
 Conventional serving schedulers treat requests as independent one-shot inferences.
 Agent workloads aren't: they are dependency graphs with sessions, and tool
 execution — not GPU time — dominates end-to-end latency. One slow tool call
 head-of-line-blocks everything behind it, and a session's context has locality
 that schedulers currently ignore.
+
+None of that is arguable from first principles, so tracon measures it first.
+One command exports your own agent transcripts into a content-free trace, and
+everything else — the diagnosis, the failure study, the regression gate and the
+scheduler simulation — reads that same export.
+
+## Three questions, one export
+
+```sh
+tracon export                     # your transcripts -> a content-free trace export
+```
+
+| | question it answers | |
+|---|---|---|
+| `tracon doctor` | **what happened** in this corpus, against published base rates | zero-config; no export needed |
+| `tracon study` | **why agent runs fail** — 85,104 real tool calls, six questions, three of them negative | [the study](docs/study.md) |
+| `tracon over-time` | **is it getting worse**, and which seat is responsible | [movement + a CI gate](docs/over-time.md) |
+
+`doctor` gives you today's numbers. `study` is the empirical base rate they are
+read against. `over-time` says whether today is worse than last month, and
+exits non-zero when a number genuinely regressed.
+
+**Everything runs locally and makes no network calls** — not optionally, not
+behind a flag. The export is content-free by construction: shapes, sizes, ids
+and timings survive capture; prompts, tool arguments, paths and outputs do not.
+`tracon doctor --share` writes a statistics-only aggregate to a file and prints
+it before you read it; nothing is ever sent.
+
+## The scheduler
 
 tracon schedules the graph instead of the request:
 
@@ -38,6 +68,9 @@ tracon schedules the graph instead of the request:
    replicated load the dependency+context-aware `tracon` policy cuts p95 turn
    latency vs FIFO with no oracle knowledge; oracle-SJF bounds the size-based
    win at −58% p95; full parity + determinism gates)
+5. ~~Diagnosis, failure study and the over-time gate~~ — done (`tracon doctor`,
+   `tracon study`, `tracon over-time`; the study replicates on an independent
+   94,059-call public corpus — [what survived](docs/study-replication.md))
 
 ## Stack
 

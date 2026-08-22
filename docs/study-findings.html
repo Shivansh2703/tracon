@@ -463,7 +463,7 @@
 
         <p><strong>What the limitation is now.</strong> <code class="code">n = 1 operator</code> is <strong>answered</strong>. What replaces it is <code class="code">n = 1 production corpus</code>, and that gap is itself a finding &mdash; see <a href="#gap">below</a>.</p>
 
-        <p class="n"><strong>On provenance.</strong> Every figure on this page about the original corpus is generated from <code class="code">results/study.json</code> by the command in the footer. Every figure about the public replication corpus is <strong>transcribed verbatim from <code class="code">docs/REPLICATION.md</code></strong> &mdash; none of it is re-derived by hand on this page.</p>
+        <p class="n"><strong>On provenance.</strong> Every figure on this page about the original corpus is generated from <code class="code">docs/results/study.json</code> by the command in the footer. Every figure about the public replication corpus is <strong>transcribed verbatim from <code class="code">docs/study-replication.md</code></strong> &mdash; none of it is re-derived by hand on this page.</p>
       </div>
     </section>
 
@@ -510,7 +510,7 @@
 
       <p><strong>Unit of analysis.</strong> A <em>stream</em> is one agentic execution: a main session, or a single subagent run, keyed <code class="code">(session_uuid, agent_id)</code>. Analyses run per stream. Merging a subagent's calls into its parent's would manufacture repetition that never occurred in any one reasoning loop.</p>
       <p><strong>Statistics.</strong> Every rate carries a Wilson 95% interval (chosen over the normal approximation because several rates here sit near zero). Comparisons use a two-sided two-proportion z-test. The context-pressure question uses a Cochran&ndash;Armitage trend test, so that a flat curve is called flat on evidence rather than by eyeballing.</p>
-      <p><strong>Reproduction.</strong> <code class="code">python -m agentfail report --trace &lt;export-dir&gt; --json results/study.json</code>. Runs in ~3s. <code class="code">--check results/study.json</code> re-runs and fails on any drift.</p>
+      <p><strong>Reproduction.</strong> <code class="code">tracon study report --trace &lt;export-dir&gt; --json docs/results/study.json</code>. Runs in ~3s. <code class="code">--check docs/results/study.json</code> re-runs and fails on any drift.</p>
     </section>
 
     <hr class="sep">
@@ -565,7 +565,7 @@
       </div>
 
       <h3 id="q1-replication">What the replication did to this finding</h3>
-      <p class="n">Figures in this subsection are transcribed from <code class="code">docs/REPLICATION.md</code>: 94,059 tool calls, 3,895 headless OpenHands runs on SWE-bench Lite, 13 models, no operator.</p>
+      <p class="n">Figures in this subsection are transcribed from <code class="code">docs/study-replication.md</code>: 94,059 tool calls, 3,895 headless OpenHands runs on SWE-bench Lite, 13 models, no operator.</p>
 
       <p class="wide-p"><strong>Corpus-wide, the finding is contradicted.</strong> Blind identical retry is nine times higher, and stuck runs ten times more common:</p>
 
@@ -591,7 +591,7 @@
           <div class="tt" id="tt-models"></div>
         </div>
         <div class="chart-legend" id="legend-models"></div>
-        <p class="chart-note">Transcribed from <code>docs/REPLICATION.md</code> &sect;5. Stuck-run rates track the same ordering: 0.3&ndash;3.3% on the frontier Claude runs against 41.1% on Llama 3.3 70B.</p>
+        <p class="chart-note">Transcribed from <code>docs/study-replication.md</code> &sect;5. Stuck-run rates track the same ordering: 0.3&ndash;3.3% on the frontier Claude runs against 41.1% on Llama 3.3 70B.</p>
       </div>
 
       <p class="wide-p">The frontier numbers are statistically indistinguishable from this corpus's 1.76% blind retry and 1.15&ndash;2.08% stuck runs &mdash; in a different harness, on a different workload, with no human present at any point. That is a direct answer to this study's own stated weakness: <strong>the low loop rate was measuring the model, not the operator.</strong></p>
@@ -754,7 +754,7 @@
 
       <div class="finding caution">
         <span class="tag">Untestable externally, and reported as untestable</span>
-        <p><em>Transcribed from <code class="code">docs/REPLICATION.md</code>.</em> The public benchmark harness caps command duration, so its &ge;60s tail is <strong>0.22% of calls against 3.71% here</strong> &mdash; 208 calls out of 94,059, with p99 at 7.5 seconds. The sign there is the same (40.87% vs 30.69%, a 1.33&times; enrichment, z = 3.18, p = 0.0015), but the effect dies under the shell-only sensitivity check, where every error is a real process exit code: <strong>1.05&times; (41.54% vs 39.58%, p = 0.58)</strong>. There is also a mechanism cutting against it there &mdash; a long command in that harness is often long <em>because</em> it is about to be killed by a timeout, which is itself recorded as a non-zero exit.</p>
+        <p><em>Transcribed from <code class="code">docs/study-replication.md</code>.</em> The public benchmark harness caps command duration, so its &ge;60s tail is <strong>0.22% of calls against 3.71% here</strong> &mdash; 208 calls out of 94,059, with p99 at 7.5 seconds. The sign there is the same (40.87% vs 30.69%, a 1.33&times; enrichment, z = 3.18, p = 0.0015), but the effect dies under the shell-only sensitivity check, where every error is a real process exit code: <strong>1.05&times; (41.54% vs 39.58%, p = 0.58)</strong>. There is also a mechanism cutting against it there &mdash; a long command in that harness is often long <em>because</em> it is about to be killed by a timeout, which is itself recorded as a non-zero exit.</p>
         <p style="margin-top:10px;"><strong>Neither confirmed nor refuted, and claimed as neither. This finding remains scoped to this corpus</strong> until somebody publishes production traces with an untruncated tail. Finding 1 is a claim about a tail that a benchmark harness does not permit to exist.</p>
       </div>
 
@@ -819,7 +819,7 @@
       </div>
 
       <h3>What the replication found here</h3>
-      <p class="n">Transcribed from <code class="code">docs/REPLICATION.md</code>.</p>
+      <p class="n">Transcribed from <code class="code">docs/study-replication.md</code>.</p>
       <p class="wide-p"><strong>The folk claim fails in both corpora.</strong> In neither does error rate climb as the context window fills. The public corpus runs 30.7% &rarr; 29.5% &rarr; 25.5% &rarr; 22.2% &rarr; 22.5% &rarr; 24.4% &rarr; 19.6% across its 25k bins. Two honest complications the public data can see and this corpus cannot:</p>
 
       <p class="wide-p"><strong>Stratification splits the effect rather than simply surviving it.</strong> Inside single tools there, <code class="code">run_ipython</code> (n = 28,528) gives z = &minus;15.97, while <code class="code">run</code> &mdash; the shell (n = 19,017) &mdash; gives <strong>z = +3.42, p = 0.00063</strong>: the one curve that rises. But that curve is not monotone (32.1% &rarr; 37.0% &rarr; 38.2% &rarr; 32.3% &rarr; 30.0%). It humps at 50&ndash;75k and then falls, and a linear trend test is a poor summary of a hump.</p>
@@ -911,7 +911,7 @@
 
       <p class="wide-p">This is reported prominently rather than buried in a methods note for two reasons. First, it is <strong>precisely the bug class this whole project exists to find</strong> &mdash; a silent, plausible, wrong number produced by an agent that had no way to know it was wrong &mdash; and it was found inside this project's own analysis, by the analysis's own author. Second, the general point survives the fix: <strong>an adapter fails quietly, and every figure quoted from the replication depends on one.</strong> A regression test pins the pair-format path now. That is a guard, not a proof.</p>
 
-      <p class="wide-p n">The honest reading of this page's provenance is therefore: figures about the original corpus are regenerated on every run and drift-checked; figures about the public corpus are transcribed from <code class="code">docs/REPLICATION.md</code>, which itself rests on one loading layer that has already been wrong once.</p>
+      <p class="wide-p n">The honest reading of this page's provenance is therefore: figures about the original corpus are regenerated on every run and drift-checked; figures about the public corpus are transcribed from <code class="code">docs/study-replication.md</code>, which itself rests on one loading layer that has already been wrong once.</p>
     </section>
 
     <hr class="sep">
@@ -963,13 +963,13 @@
 
 <footer>
   <div class="wrap">
-    <p>Generated from <code>results/study.json</code>. Every figure on this page <strong>about the original corpus</strong> is reproduced by the first command below; none of it is transcribed by hand.</p>
-    <div class="repro"><code>python -m agentfail report --trace &lt;export&gt; --json results/study.json
-python -m agentfail report --check results/study.json</code></div>
-    <p style="margin-top:18px;">Every figure on this page <strong>about the public replication corpus</strong> &mdash; the 94,059-call OpenHands SWE-bench corpus, the 13-model table, the ground-truth resolution rates and the bracket calibration &mdash; is <strong>transcribed verbatim from <code>docs/REPLICATION.md</code></strong> and is not re-derived on this page. That document is produced by the unmodified analyses in <code>src/agentfail/analyses/</code> over a new loading layer:</p>
-    <div class="repro"><code>python -m agentfail adapt --adapter openhands --out &lt;export&gt; &lt;output.jsonl files&gt;
-python -m agentfail report --trace &lt;export&gt; --json &lt;result.json&gt;
-python scripts/replicate.py --public &lt;result.json&gt; ...</code></div>
+    <p>Generated from <code>docs/results/study.json</code>. Every figure on this page <strong>about the original corpus</strong> is reproduced by the first command below; none of it is transcribed by hand.</p>
+    <div class="repro"><code>tracon study report --trace &lt;export&gt; --json docs/results/study.json
+tracon study report --check docs/results/study.json</code></div>
+    <p style="margin-top:18px;">Every figure on this page <strong>about the public replication corpus</strong> &mdash; the 94,059-call OpenHands SWE-bench corpus, the 13-model table, the ground-truth resolution rates and the bracket calibration &mdash; is <strong>transcribed verbatim from <code>docs/study-replication.md</code></strong> and is not re-derived on this page. That document is produced by the unmodified analyses in <code>src/tracon/study/analyses/</code> over a new loading layer:</p>
+    <div class="repro"><code>tracon study adapt --adapter openhands --out &lt;export&gt; &lt;output.jsonl files&gt;
+tracon study report --trace &lt;export&gt; --json &lt;result.json&gt;
+python scripts/study_replicate.py --public &lt;result.json&gt; ...</code></div>
     <p style="margin-top:18px;">Corrections on this page are dated and the superseded claim is stated, never deleted. Last correction: 3 August 2026 &mdash; looping scope, and the Q4 join count.</p>
   </div>
 </footer>
@@ -1219,7 +1219,7 @@ python scripts/replicate.py --public &lt;result.json&gt; ...</code></div>
   }
 
   /* ---------- Chart 2b: blind retry by model (public corpus) ----------
-     All values transcribed from docs/REPLICATION.md section 5. */
+     All values transcribed from docs/study-replication.md section 5. */
   var modelRows = [
     {label:'claude-3-5-sonnet (v2.2)', pct:0.7,  calls:7531,  stuck:'0.0 – 2.7',  frontier:true},
     {label:'claude-3-5-haiku (v2.1)',  pct:1.2,  calls:9334,  stuck:'0.3 – 1.0',  frontier:true},

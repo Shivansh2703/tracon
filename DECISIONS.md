@@ -300,3 +300,111 @@ than to a confirmer. The two withdrawn headlines in this file were both found th
 late. This one was found on day one of the tool that surfaces it.
 
 - 2026-08-22 01:4x (Iris chat, owner verbatim): **"Make the whole project tracon"** — RULING, after Iris described the three-tool shape (tracon/doctor · agentfail · agent-obs): one project, one repo, one name. The study and the over-time tool fold INTO tracon as parts of it; "agentfail" and "agent-obs" cease to be separate projects or names. Iris's reading of scope, not his words: history-preserving fold on a branch, no push, public-repo laws (no trailers, banned numbers) bind.
+
+## 2026-08-22 — THE FOLD, executed
+
+Branch `wt-fold`, **unmerged — the owner merges.** This section is the record of what
+was done to this repo's tree and history on that ruling.
+
+**What moved.** Two separate local-only git repos, nested here and gitignored, are now
+part of this tree:
+
+| was | is |
+|---|---|
+| `agentfail/src/agentfail/` | `src/tracon/study/` |
+| `agentfail/tests/` | `tests/study/` |
+| `agentfail/docs/FINDINGS.md` · `REPLICATION.md` · `site/index.html` | `docs/study-findings.md` · `study-replication.md` · `study-findings.html` |
+| `agentfail/results/study.json` | `docs/results/study.json` |
+| `agentfail/scripts/{check_findings,replicate}.py` | `scripts/study_{check_findings,replicate}.py` |
+| `agent-obs/src/agent_obs/` | `src/tracon/overtime/` |
+| `agent-obs/tests/` | `tests/overtime/` |
+| both `README.md`s | `docs/study.md` · `docs/over-time.md` |
+
+`tracon study` and `tracon over-time` are subcommands beside `tracon doctor`; one
+pyproject, one console script, one lint config, one DECISIONS.md.
+
+**Method, and why not `git subtree`.** The imported history had to be **rewritten**, not
+preserved verbatim: three commits in the study's history and two in the over-time view's
+carried AI-attribution trailers, flagged for the owner on 2026-08-14 and again on
+2026-08-22 as a launch-day problem. `git-filter-repo` stripped them in the same pass that
+moved the paths, so nothing carrying agent attribution enters this public repo's history.
+Verified after the fold by grepping the whole branch for real trailer lines: **zero**.
+Author identity was already clean — every commit in both repos is the owner's.
+
+**Seat decisions taken on the fold. All five are seat decisions, not owner rulings —
+reversible, and recorded here so they can be overturned cheaply.**
+
+1. **The package directories were renamed** (`agentfail` → `study`, `agent_obs` →
+   `overtime`) because they had to move inside the `tracon` package to be part of it, and
+   the old names are the project names he just retired. **Module names inside them are
+   untouched** — `loader`, `stats`, `analyses/`, `corpus`, `gate`, `track` — because
+   renaming those is churn with no reader on the other end.
+2. **The over-time repo's `.scratch/` was excluded from the import**, and the twelve
+   spec-only commits that touched nothing else pruned with it. Those are two closed
+   wayfinder maps holding competitive positioning, named third parties, first-person
+   quotes lifted from practitioners, and an inventory of the owner's own assets. **This
+   repo is public**, and its `.gitignore` already says planning scratch is never
+   published. The files are untouched in the nested repo's `.git`, which is the only copy
+   — so **do not delete `agent-obs/` without deciding what happens to them.** Their
+   conclusions are already on record in this file.
+3. **One copy of the statistics.** `agent_obs/stats.py` was a hand-synced copy of the
+   study's `wilson` / `normal_sf` / `two_proportion_test`, kept separate because the two
+   packages could not depend on each other (seat decision 3 of the overnight build,
+   below). They are one package now, so the copy is deleted and the gate imports the
+   original. A hand-synced copy of a significance test is a wrong number waiting to
+   happen.
+4. **Lint exemptions rather than a refactor.** The study never ran a linter in its own
+   repo; bringing it under this repo's `select = ["ALL"]` produced 188 findings. 164 were
+   fixed. The remainder are granted per directory with a reason each, and only for rules
+   that would mean restructuring analysis code whose numbers are published and whose shape
+   the tests pin — the same exemptions this repo already grants the exporter, for the same
+   reason.
+5. **The study's `--trace` no longer defaults to a path on the author's own machine.**
+   It defaulted to `~/Personal/infinity/tracon/traces/export-2026-07-30`, which was
+   harmless in a local-only repo and is not in a public one. `report` without `--trace`
+   now says so and names `tracon export`.
+
+**Verified, measured rather than asserted, at the tip of the branch:**
+
+- **282 tests green** — 80 tracon, 161 study, 41 over-time — and **`ruff check .` reports
+  zero findings** across the whole tree. Coverage 92.65%.
+- The study, run through the new entry point over the real 2026-07-30 corpus, reproduces
+  its **published** figures exactly: 85,104 tool calls, 3.341% tool error rate,
+  1.29%–3.569% repeat-run bracket, 75.08% of tool time in the >=60s tail, trend z = -2.33
+  p = 0.020. `tracon study report --check docs/results/study.json` exits 0, and
+  `scripts/study_check_findings.py` passes all seven numeric assertions.
+- `tracon over-time track` over all three real corpora prints the same raw
+  (20.36 / 16.55 / 16.36) and corrected (15.25 / 8.74 / 8.63) unaccounted rates already on
+  record above.
+- No banned figure appears anywhere in the imported code, docs or history.
+
+**Carried over from the two folded repos' own `DECISIONS.md` files, now deleted — one
+project has one decisions log.** Their owner rulings were already recorded above. What was
+only in theirs:
+
+- **The study's 2026-08-04 ruling, "fine as own project (unsure if a product though)", is
+  SUPERSEDED** by "Make the whole project tracon". Recorded as superseded, not deleted.
+- **The four seat decisions taken on the 2026-08-22 overnight build of the over-time
+  view** stand unchanged and are still reversible: (1) it is the *fleet-over-time* leg —
+  movement across N corpora plus a gate — built because neither `doctor` nor the study
+  answers "is it getting worse"; (2) it was built in its own repo on a branch, explicitly
+  **not** settling where the tools finally live — which is what this fold now settles;
+  (3) the statistics were copied rather than imported, **superseded by fold decision 3
+  above**; (4) the gate uses a two-proportion test rather than a threshold wherever the
+  metric is a real proportion, and never flags an improvement.
+
+**Owed by the owner. Unchanged by this fold, and still owed:**
+
+1. **What may be done with an aggregate a stranger sends** — publish it, pool it into a
+   public base-rate table, name contributors. Carried since 2026-08-14. It affects other
+   people, so no keep-going instruction covers it.
+2. **The root-cause repair for the unaccounted-run artifact** is a schema change in the
+   exporter that would invalidate existing exports and touch the study's loader.
+3. **`tracon doctor` still prints the uncorrected figure** on a public front door.
+4. **The cross-command inconsistency**: the study calls `end_status: unknown` "missing
+   data, not a failure" and excludes it from its denominators; `doctor` headlines the same
+   quantity as a finding.
+5. **Removing the two leftover working directories** (`agentfail/`, `agent-obs/`) once
+   this branch is merged — see seat decision 2 before deleting `agent-obs/.git`.
+6. **The name** — `over-time` is this seat's subcommand name, not a product name. Naming,
+   domains and package registration are his alone.

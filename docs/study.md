@@ -1,11 +1,11 @@
-# agentfail
+# tracon study — why agent runs fail
 
 Empirical failure-mode analysis of real production agent sessions.
 
-**[docs/FINDINGS.md](docs/FINDINGS.md)** is the study. **[site/index.html](site/index.html)** is the
-same study as a self-contained page. **[docs/REPLICATION.md](docs/REPLICATION.md)** re-runs the same
-analyses over 94,059 tool calls from 13 models in a different harness, and reports which findings
-survived.
+**[study-findings.md](study-findings.md)** is the study. **[study-findings.html](study-findings.html)**
+is the same study as a self-contained page. **[study-replication.md](study-replication.md)** re-runs
+the same analyses over 94,059 tool calls from 13 models in a different harness, and reports which
+findings survived.
 
 ## What this is
 
@@ -21,27 +21,27 @@ and all three are reported that way.
 
 ## Replication on public data
 
-The study's own stated weakness is `n = 1 operator`. `src/agentfail/adapters/` maps public
+The study's own stated weakness is `n = 1 operator`. `src/tracon/study/adapters/` maps public
 agent-trajectory corpora into the same event schema so the *unchanged* analyses run over them:
 
 ```sh
-python -m agentfail adapt --adapter openhands --out <export> <output.jsonl files>
-python -m agentfail report --trace <export> --json <result.json>
-python scripts/replicate.py --public <result.json> --export <export>
+tracon study adapt --adapter openhands --out <export> <output.jsonl files>
+tracon study report --trace <export> --json <result.json>
+python scripts/study_replicate.py --public <result.json> --export <export>
 ```
 
 Short version: the context-pressure result replicates and generalises; the low loop rate turns out
 to be a property of frontier models rather than of the operator, and is false stated as a claim
 about agents in general; the elapsed-time result cannot be tested externally because no public
 corpus has an untruncated tail. Details, and a correction to the original, in
-[docs/REPLICATION.md](docs/REPLICATION.md).
+[study-replication.md](study-replication.md).
 
 ## Reproduce every number
 
 Nothing in the writeup is transcribed by hand. Both documents are generated from one command:
 
 ```sh
-python -m agentfail report --trace <tracon-export-dir> --json results/study.json
+tracon study report --trace <tracon-export-dir> --json docs/results/study.json
 ```
 
 Runs in about 3 seconds over the full corpus. Zero dependencies beyond the standard library.
@@ -49,14 +49,14 @@ Runs in about 3 seconds over the full corpus. Zero dependencies beyond the stand
 Verify the published figures have not drifted:
 
 ```sh
-python -m agentfail report --trace <tracon-export-dir> --check results/study.json
+tracon study report --trace <tracon-export-dir> --check docs/results/study.json
 ```
 
 Exits non-zero if any figure changed.
 
 ## Input format
 
-A [tracon](https://github.com/Shivansh2703/tracon) trace export directory containing
+A tracon trace export directory (`tracon export`) containing
 `events.jsonl` (one normalized event per line, `ev` discriminator) and `manifest.json`. The
 exporter strips all content at capture time: shapes, sizes, ids and timings survive; prompt text,
 tool arguments and outputs do not. That constraint shapes the whole study and kills at least one
@@ -65,10 +65,10 @@ of its questions outright.
 ## Layout
 
 ```
-src/agentfail/
+src/tracon/study/
   loader.py            corpus -> per-stream event sequences
   stats.py             Wilson intervals, two-proportion test, Cochran-Armitage trend
-  cli.py               `agentfail report`
+  cli.py               `tracon study report`
   analyses/
     summary.py         Q0  corpus description and its biases
     looping.py         Q1  repeat runs, bounded above and below
@@ -76,10 +76,10 @@ src/agentfail/
     longtail.py        Q3  what the slow calls actually are
     context.py         Q4  context pressure and compaction
     termination.py     Q5/Q6  how runs end, recovery, and what is unanswerable
-tests/                 pytest suite; `-m slow` runs against the real corpus
-docs/FINDINGS.md       the study
-site/index.html        self-contained page, no external requests
-results/study.json     generated; the source of every published figure
+tests/study/           pytest suite; `-m slow` runs against the real corpus
+docs/study-findings.md    the study
+docs/study-findings.html  self-contained page, no external requests
+docs/results/study.json   generated; the source of every published figure
 ```
 
 ## Tests

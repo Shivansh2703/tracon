@@ -1,39 +1,33 @@
-# agent-obs
+# tracon over-time — is the fleet getting worse
 
-**Your fleet's health, over time.** Reads two or more [tracon](https://github.com/Shivansh2703/tracon)
-trace exports captured at different moments and reports what *moved* — with a gate that exits
-non-zero when a number genuinely got worse.
-
-`agent-obs` is a working name.
+**Your fleet's health, over time.** Reads two or more tracon trace exports captured at different
+moments and reports what *moved* — with a gate that exits non-zero when a number genuinely got
+worse.
 
 ## Where it sits
 
-Three tools, three questions. This is the third.
+Three questions, one export directory answering all of them. This is the third.
 
 | | question |
 |---|---|
-| `agentfail` | what do 85,104 real tool calls say about how agent runs fail? |
+| `tracon study` | what do 85,104 real tool calls say about how agent runs fail? |
 | `tracon doctor` | what happened in **this one** corpus, against published base rates? |
-| **`agent-obs`** | **is my fleet getting worse, and which seat is responsible?** |
+| **`tracon over-time`** | **is my fleet getting worse, and which seat is responsible?** |
 
 One reading of a moving number is not a state. `doctor` gives you today's numbers; this tells you
 whether today is worse than last month, and which part of the fleet moved.
 
 ## Use
 
-Python 3.11+. Zero dependencies.
-
 ```sh
-pip install .
-
 # what moved across your exports
-agent-obs track traces/export-2026-07-30 traces/export-2026-08-14 --json fleet.json
+tracon over-time track traces/export-2026-07-30 traces/export-2026-08-14 --json fleet.json
 
 # the gate: exit 1 if something regressed against a baseline
-agent-obs check --baseline fleet.json traces/export-2026-08-22
+tracon over-time check --baseline fleet.json traces/export-2026-08-22
 ```
 
-Or without installing, from a checkout: `PYTHONPATH=src python -m agent_obs track …`
+Or without installing, from a checkout: `PYTHONPATH=src python -m tracon over-time track …`
 
 `check` exits **0** clean, **1** on regression, **2** on a bad input — so it drops into CI or a
 pre-merge hook without a wrapper. Either command takes an export directory or a previously
@@ -75,7 +69,7 @@ in July:
 | 2026-08-14b | 16.36% | **8.63%** |
 
 The gate uses the corrected figure. The raw one is still printed, unchanged, so it agrees to the
-digit with what `tracon doctor` reports for the same corpus — two tools in one suite must never
+digit with what `tracon doctor` reports for the same corpus — two commands of one tool must never
 print different values for the same named quantity.
 
 *(Measured 2026-08-22 on one operator's own corpora. A point of comparison, not a norm.)*
@@ -87,7 +81,7 @@ unresolvable runs, unaccounted rate and tool minutes per agent type, so a seat t
 stopped finishing its work is visible rather than averaged away.
 
 Agent type names are user-chosen strings from your own fleet config. **They stay on your
-machine.** There is no share command, no aggregate, and no network code in this package at all.
+machine.** There is no share command, no aggregate, and no network code in it at all.
 
 ## What it deliberately does not do
 
@@ -107,5 +101,3 @@ transcripts; the unaccounted-run figure has never been validated anywhere else, 
 corpus is both multi-agent and untruncated. Read it as a description of that machine.
 
 The tool carries none of that limitation — it computes your numbers from your traces.
-
-MIT.

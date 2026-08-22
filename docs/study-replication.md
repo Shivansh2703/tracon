@@ -1,6 +1,6 @@
 # Replicating the three findings on public data
 
-`docs/FINDINGS.md` names its own worst weakness: **n = 1 operator.** One developer,
+`docs/study-findings.md` names its own worst weakness: **n = 1 operator.** One developer,
 one harness, one prompting style. Its own guess at the explanation for "agents rarely
 loop and handle errors well" was that this particular operator is good, and that the
 low loop rate might be measuring *him*.
@@ -22,13 +22,13 @@ Finding 3 is the one that would have embarrassed anyone quoting the study as a
 general claim, and it is also the one that answers the study's own question.
 **What the original corpus measured was not its operator. It was its model.**
 
-Everything below is produced by the **unmodified analyses** in `src/agentfail/analyses/`.
+Everything below is produced by the **unmodified analyses** in `src/tracon/study/analyses/`.
 Only the loading layer is new. Reproduce with:
 
 ```
-python -m agentfail adapt --adapter openhands --out <export> <output.jsonl files>
-python -m agentfail report --trace <export> --json <result.json>
-python scripts/replicate.py --public <result.json> ...
+tracon study adapt --adapter openhands --out <export> <output.jsonl files>
+tracon study report --trace <export> --json <result.json>
+python scripts/study_replicate.py --public <result.json> ...
 ```
 
 ---

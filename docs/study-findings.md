@@ -2,14 +2,14 @@
 
 An empirical failure-mode analysis of 85,104 tool calls across 1,854 real agent runs.
 
-*Generated from `results/study.json`. Every figure about **this** corpus is reproduced by
-`python -m agentfail report --trace <export>`; nothing about it is transcribed by hand.
+*Generated from `docs/results/study.json`. Every figure about **this** corpus is reproduced by
+`tracon study report --trace <export>`; nothing about it is transcribed by hand.
 Figures about the **public replication corpus** are transcribed verbatim from
-`docs/REPLICATION.md` and are marked as such wherever they appear.*
+`docs/study-replication.md` and are marked as such wherever they appear.*
 
 **Status (2026-08-03): externally replicated, and one finding's scope corrected.**
 94,059 tool calls from 3,895 headless runs by 13 models in a different harness were run
-through these same analyses (`docs/REPLICATION.md`). Finding 2 replicated far more
+through these same analyses (`docs/study-replication.md`). Finding 2 replicated far more
 strongly and has dropped its operator caveat. Finding 3 is **false as stated about
 "agents"** and has been restated as a claim about *frontier models*. Finding 1 is not
 testable on any public corpus. One factual error in Q4 was found and is corrected below.
@@ -28,7 +28,7 @@ Six limitations, stated once, applying to everything that follows:
 
 1. ~~**Single operator.**~~ **Answered externally (2026-08-03).** One person's prompting, one
    person's risk tolerance, one person's tooling - but the behaviour reproduces in a headless
-   harness with no operator at all (`docs/REPLICATION.md`). What replaces it is **single
+   harness with no operator at all (`docs/study-replication.md`). What replaces it is **single
    production corpus**: every public agent dataset is short, step-capped benchmark output, and
    there is no public corpus of real production agent sessions at all.
 2. **Single harness.** Claude Code, 24 versions across the window. No other agent framework.
@@ -74,8 +74,8 @@ approximation because several rates here sit near zero). Comparisons use a two-s
 two-proportion z-test. The context-pressure question uses a Cochran-Armitage trend test, so
 that a flat curve is called flat on evidence rather than by eyeballing.
 
-**Reproduction.** `python -m agentfail report --trace <export-dir> --json results/study.json`.
-Runs in ~3s. `--check results/study.json` re-runs and fails on any drift.
+**Reproduction.** `tracon study report --trace <export-dir> --json docs/results/study.json`.
+Runs in ~3s. `--check docs/results/study.json` re-runs and fails on any drift.
 
 ---
 
@@ -138,7 +138,7 @@ rule out a real effect.**
 
 ### What the replication did to this finding
 
-*Figures transcribed from `docs/REPLICATION.md`.*
+*Figures transcribed from `docs/study-replication.md`.*
 
 The same analyses were run over 94,059 tool calls from 3,895 headless OpenHands runs on
 SWE-bench Lite, by 13 models from six vendors. **Corpus-wide, this finding is contradicted:**
@@ -292,7 +292,7 @@ of calls are errors (n=90). By >=30 minutes, half are (n=8 - too small to lean o
 > running 10 minutes is roughly 9x likelier to end in an error than a typical call.
 >
 > **Untestable externally, and reported as untestable.** *(transcribed from
-> `docs/REPLICATION.md`)* The public benchmark harness caps command duration, so its >=60s
+> `docs/study-replication.md`)* The public benchmark harness caps command duration, so its >=60s
 > tail is **0.22%** of calls against **3.71%** here - 208 calls out of 94,059. The sign there
 > is the same (40.87% vs 30.69%, 1.33x, z = 3.18, p = 0.0015) but the effect dies under the
 > shell-only sensitivity check: **1.05x (41.54% vs 39.58%, p = 0.58)**. Neither confirmed nor
@@ -322,7 +322,7 @@ never what the code computed: **25,199 calls (29.6%) join**, and the other 59,90
 an `api_uuid` that appears nowhere in the export as an `api_call`. Worse, the joinable
 subset is not random — 22.5% of `Bash` calls join versus 47.7% of `Read`, and joined
 calls carry a lower error rate (2.79%) than unjoined ones (3.57%). Everything below is
-computed on that 30% subset. See `docs/REPLICATION.md`.
+computed on that 30% subset. See `docs/study-replication.md`.
 
 **Error rate does not rise with context size. It falls slightly.**
 
@@ -348,7 +348,7 @@ a weak negative trend at p = 0.019, uncorrected for three comparisons.
 > mix.**
 >
 > **This finding replicates externally, far more strongly** *(transcribed from
-> `docs/REPLICATION.md`)* — **z = -10.80, p = 3.4e-27 across 47,545 joined calls** from 13
+> `docs/study-replication.md`)* — **z = -10.80, p = 3.4e-27 across 47,545 joined calls** from 13
 > models in a different harness with no operator present, against z = -2.33 here. Error rate
 > by context bin there runs 30.7% → 29.5% → 25.5% → 22.2% → 22.5% → 24.4% → 19.6%. **It is the
 > one finding here that no longer needs a single-operator caveat at all.**
@@ -473,7 +473,7 @@ somebody else's data:
    Actionable without any model in the loop. **Neither confirmed nor refuted externally, and
    claimed as neither:** the benchmark harness caps command duration, so its tail is 0.22% of
    calls against 3.71% here, and the effect dies under a shell-only sensitivity check (1.05x,
-   p = 0.58). **Still scoped to this corpus** (`docs/REPLICATION.md`).
+   p = 0.58). **Still scoped to this corpus** (`docs/study-replication.md`).
 
 **A near-miss worth publishing, because it is the strongest evidence this study is being run
 honestly.** The replication's first adapter silently skipped the eight of thirteen runs that
@@ -483,7 +483,7 @@ runs.** It raised no error and the output looked entirely plausible. It was caug
 noticing that `streams_with_tool_calls` was 1,497 when the corpus had 3,895 streams. That is
 precisely the bug class this project exists to find - a silent, plausible, wrong number - found
 inside this project's own analysis. A regression test pins it now; the general point stands, and
-every figure in `docs/REPLICATION.md` depends on one loading layer.
+every figure in `docs/study-replication.md` depends on one loading layer.
 
 **What the data could not answer:** premature confidence (content stripped, no ground truth);
 whether an agent proceeded on a failed result *in substance* rather than in structure; anything
@@ -492,7 +492,7 @@ this document.
 
 **Where this is weakest**, in the order a skeptic will find it:
 
-- **~~n = 1 operator.~~ Tested externally and largely answered - see `docs/REPLICATION.md`.**
+- **~~n = 1 operator.~~ Tested externally and largely answered - see `docs/study-replication.md`.**
   The suspicion was that the low loop rate measured this operator rather than the agents. It
   does not: the same models reproduce it in a headless harness on a different workload with no
   human in the loop. What remains is **n = 1 production corpus** - every public dataset is
